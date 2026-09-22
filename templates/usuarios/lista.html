@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários do Sistema{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">
+    <i class="fas fa-users-gear me-2 text-primary"></i> Usuários
+  </h5>
+  <a href="{{ url_for('novo_usuario') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i> Novo Usuário
+  </a>
+</div>
+
+<div class="card-panel">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Matrícula</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Último Acesso</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="cursor:default;">
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span style="width:32px;height:32px;background:{% if u.perfil == 'admin' %}#fef2f2{% elif u.perfil == 'gestor' %}#eff6ff{% else %}#f0fdf4{% endif %};border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:{% if u.perfil == 'admin' %}#dc2626{% elif u.perfil == 'gestor' %}#2563eb{% else %}#059669{% endif %};">
+                {{ u.nome[:2].upper() }}
+              </span>
+              <span class="fw-semibold">{{ u.nome }}</span>
+            </div>
+          </td>
+          <td><code style="font-size:12.5px;">{{ u.matricula }}</code></td>
+          <td style="color:var(--text-muted);font-size:13px;">{{ u.email or '—' }}</td>
+          <td>
+            {% if u.perfil == 'admin' %}
+              <span class="badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:11px;padding:4px 10px;">
+                <i class="fas fa-crown me-1"></i> Administrador
+              </span>
+            {% elif u.perfil == 'gestor' %}
+              <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11px;padding:4px 10px;">
+                <i class="fas fa-user-tie me-1"></i> Gestor
+              </span>
+            {% else %}
+              <span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-size:11px;padding:4px 10px;">
+                <i class="fas fa-user me-1"></i> Operador
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.ativo %}
+              <span class="badge bg-success" style="font-size:11px;">Ativo</span>
+            {% else %}
+              <span class="badge bg-secondary" style="font-size:11px;">Inativo</span>
+            {% endif %}
+          </td>
+          <td style="font-size:12.5px;color:var(--text-muted);">
+            {% if u.ultimo_acesso %}
+              {{ u.ultimo_acesso.strftime('%d/%m/%Y %H:%M') }}
+            {% else %}
+              <span style="font-style:italic;">Nunca</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('editar_usuario', id=u.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:11.5px;">
+              <i class="fas fa-edit me-1"></i> Editar
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5" style="color:var(--text-muted);">
+            <i class="fas fa-users fa-2x mb-2 d-block opacity-25"></i>
+            Nenhum usuário cadastrado.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

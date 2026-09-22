@@ -1,0 +1,16 @@
+{
+  "name": "DITRAN — Controle de Diárias",
+  "short_name": "DITRAN",
+  "description": "Sistema de Controle de Diárias MDS/DITRAN",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1b2e",
+  "theme_color": "#0d1b2e",
+  "icons": [
+    {
+      "src": "/static/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Saldo de Diárias{% endblock %}
+{% block page_title %}Saldo de Diárias{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="section-title mb-0">
+    <i class="fas fa-wallet"></i> Controle de Saldo
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaSaldo">
+    <i class="fas fa-plus me-1"></i> Novo Contrato / Saldo
+  </button>
+</div>
+
+<!-- ── Cartões de Saldo ─────────────────────────────────────── -->
+{% for s in saldos %}
+<div class="saldo-card mb-4 {{ '' if s.ativo else '' }}" style="{{ 'opacity:.55;' if not s.ativo }}">
+  <div class="saldo-card-header">
+    <div>
+      <div style="font-size:15px;font-weight:700;">{{ s.descricao }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">
+        Atualizado em {{ s.data_atualizacao.strftime('%d/%m/%Y %H:%M') }}
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="chip" style="{{ 'background:#f0fdf4;color:#166534;border-color:#86efac;' if s.ativo else '' }}">
+        <i class="fas fa-{{ 'circle' if s.ativo else 'circle-xmark' }} fa-xs"></i>
+        {{ 'Ativo' if s.ativo else 'Inativo' }}
+      </span>
+      {% if s.ativo %}
+      <button class="btn btn-sm btn-primary"
+              data-bs-toggle="modal" data-bs-target="#modalCreditar"
+              data-id="{{ s.id }}" data-descricao="{{ s.descricao }}">
+        <i class="fas fa-plus-circle me-1"></i> Creditar Diárias
+      </button>
+      {% endif %}
+      <form method="post" class="mb-0">
+        <input type="hidden" name="action" value="toggle">
+        <input type="hidden" name="saldo_id" value="{{ s.id }}">
+        <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if s.ativo else 'success' }}">
+          {{ 'Desativar' if s.ativo else 'Ativar' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="saldo-card-body">
+    <!-- Números grandes -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div style="text-align:center;padding:16px;background:#f8fafc;border-radius:12px;border:1px solid var(--border);">
+          <div class="saldo-number" style="color:var(--accent);">{{ s.saldo_total }}</div>
+          <div class="saldo-label">Total</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="text-align:center;padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
+          <div class="saldo-number" style="color:var(--success);">{{ s.saldo_livre }}</div>
+          <div class="saldo-label">Disponível</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="text-align:center;padding:16px;background:#fffbeb;border-radius:12px;border:1px solid #fde68a;">
+          <div class="saldo-number" style="color:var(--warning);">{{ s.saldo_comprometido }}</div>
+          <div class="saldo-label">Comprometido</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div style="text-align:center;padding:16px;background:#fef2f2;border-radius:12px;border:1px solid #fecaca;">
+          <div class="saldo-number" style="color:var(--danger);">{{ s.saldo_usado }}</div>
+          <div class="saldo-label">Utilizado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de progresso detalhada -->
+    {% if s.saldo_total > 0 %}
+    <div style="margin-bottom:12px;">
+      <div class="d-flex justify-content-between mb-1">
+        <span style="font-size:12px;font-weight:600;color:var(--text-muted);">Utilização do saldo</span>
+        <span style="font-size:12px;color:var(--text-muted);">
+          {{ s.pct_usado + s.pct_comprometido }}% utilizado/comprometido
+        </span>
+      </div>
+      <div class="progress-custom" style="height:16px;border-radius:10px;">
+        <div class="bar bar-danger" style="width:{{ s.pct_usado }}%;"
+             title="Utilizado: {{ s.saldo_usado }}"></div>
+        <div class="bar bar-warning" style="width:{{ s.pct_comprometido }}%;"
+             title="Comprometido: {{ s.saldo_comprometido }}"></div>
+      </div>
+      <div class="d-flex gap-4 mt-2 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:10px;height:10px;background:var(--danger);border-radius:3px;"></div>
+          <span style="font-size:12px;color:var(--text-muted);">Utilizado {{ s.pct_usado }}%</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:10px;height:10px;background:var(--warning);border-radius:3px;"></div>
+          <span style="font-size:12px;color:var(--text-muted);">Comprometido {{ s.pct_comprometido }}%</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:10px;height:10px;background:#e2e8f0;border-radius:3px;"></div>
+          <span style="font-size:12px;color:var(--text-muted);">
+            Disponível {{ 100 - s.pct_usado - s.pct_comprometido }}%
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if s.valor_referencia and s.valor_referencia > 0 %}
+    <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;border:1px solid var(--border);font-size:13px;">
+      <span style="color:var(--text-muted);">Valor por diária:</span>
+      <strong>R$ {{ '%.2f'|format(s.valor_referencia|float)|replace('.', ',') }}</strong>
+      &nbsp;·&nbsp;
+      <span style="color:var(--text-muted);">Total utilizado:</span>
+      <strong style="color:var(--success);">R$ {{ '%.2f'|format((s.saldo_usado * s.valor_referencia|float))|replace('.', ',') }}</strong>
+      &nbsp;·&nbsp;
+      <span style="color:var(--text-muted);">Total comprometido:</span>
+      <strong style="color:var(--warning);">R$ {{ '%.2f'|format((s.saldo_comprometido * s.valor_referencia|float))|replace('.', ',') }}</strong>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card-panel mb-4">
+  <div class="card-panel-body">
+    <div class="empty-state">
+      <i class="fas fa-wallet"></i>
+      Nenhum saldo cadastrado. Clique em <strong>Novo Contrato / Saldo</strong> para começar.
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ── Histórico de Movimentações ──────────────────────────── -->
+<div class="card-panel">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-clock-rotate-left"></i> Histórico de Movimentações</div>
+    <span style="font-size:12px;color:var(--text-muted);">Últimas 30</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data / Hora</th>
+          <th>Tipo</th>
+          <th style="text-align:center;">Qtd.</th>
+          <th>Descrição</th>
+          <th>Solicitação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historico %}
+        <tr style="cursor:default;">
+          <td style="font-size:12.5px;white-space:nowrap;">
+            {{ h.data.strftime('%d/%m/%Y') }}<br>
+            <span style="color:var(--text-muted);">{{ h.data.strftime('%H:%M') }}</span>
+          </td>
+          <td>
+            {% if h.tipo == 'Crédito' %}
+            <span class="status-badge" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;">
+              <i class="fas fa-plus-circle fa-xs"></i> {{ h.tipo }}
+            </span>
+            {% elif h.tipo == 'Débito' %}
+            <span class="status-badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;">
+              <i class="fas fa-minus-circle fa-xs"></i> {{ h.tipo }}
+            </span>
+            {% elif h.tipo == 'Compromisso' %}
+            <span class="status-badge" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a;">
+              <i class="fas fa-lock fa-xs"></i> {{ h.tipo }}
+            </span>
+            {% elif h.tipo == 'Liberação' %}
+            <span class="status-badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;">
+              <i class="fas fa-lock-open fa-xs"></i> {{ h.tipo }}
+            </span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;font-weight:700;font-size:14px;">
+            <span style="color:{{ 'var(--success)' if h.tipo in ('Crédito','Liberação') else 'var(--danger)' }}">
+              {{ '+' if h.tipo in ('Crédito','Liberação') else '-' }}{{ h.quantidade }}
+            </span>
+          </td>
+          <td style="font-size:13px;">{{ h.descricao }}</td>
+          <td>
+            {% if h.solicitacao %}
+            <a href="{{ url_for('detalhe_solicitacao', id=h.solicitacao_id) }}"
+               class="link-clean text-accent fw-semibold" style="font-size:13px;">
+              {{ h.solicitacao.numero }}
+            </a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">
+            <div class="empty-state">
+              <i class="fas fa-history"></i>
+              Nenhuma movimentação registrada ainda.
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Modal Novo Saldo ────────────────────────────────────── -->
+<div class="modal fade" id="modalNovaSaldo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--r);border:none;">
+      <form method="post">
+        <input type="hidden" name="action" value="criar">
+        <div class="modal-header" style="border-bottom:1px solid var(--border);">
+          <h5 class="modal-title fw-700">Novo Contrato / Saldo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Descrição <span class="text-danger">*</span></label>
+            <input type="text" name="descricao" class="form-control" required
+                   placeholder="Ex: Contrato 001/2026 – Empresa XYZ">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantidade de diárias <span class="text-danger">*</span></label>
+            <input type="number" name="saldo_total" class="form-control" min="0" required value="0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Valor de referência por diária (R$)</label>
+            <input type="number" name="valor_referencia" class="form-control"
+                   min="0" step="0.01" value="0.00">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid var(--border);">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Saldo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Creditar ──────────────────────────────────────── -->
+<div class="modal fade" id="modalCreditar" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:var(--r);border:none;">
+      <form method="post">
+        <input type="hidden" name="action" value="creditar">
+        <input type="hidden" name="saldo_id" id="creditarSaldoId">
+        <div class="modal-header" style="border-bottom:1px solid var(--border);">
+          <h5 class="modal-title fw-700">Creditar Diárias</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted" style="font-size:13px;" id="creditarSaldoDesc"></p>
+          <div class="mb-3">
+            <label class="form-label">Quantidade a creditar <span class="text-danger">*</span></label>
+            <input type="number" name="quantidade" class="form-control" min="1" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descrição da movimentação</label>
+            <input type="text" name="descricao_mov" class="form-control"
+                   placeholder="Ex: Aditivo contratual – Termo X">
+          </div>
+        </div>
+        <div class="modal-footer" style="border-top:1px solid var(--border);">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Creditar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalCreditar')?.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  document.getElementById('creditarSaldoId').value = btn.dataset.id;
+  document.getElementById('creditarSaldoDesc').textContent = btn.dataset.descricao;
+});
+</script>
+{% endblock %}

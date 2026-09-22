@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Calendário{% endblock %}
+{% block page_title %}Calendário de Serviços{% endblock %}
+
+{% block content %}
+
+<!-- Navegação -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <h5 class="fw-bold mb-0" style="font-size:18px;">{{ month_name }}</h5>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('calendario', year=prev_year, month=prev_month) }}"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-chevron-left"></i>
+    </a>
+    <a href="{{ url_for('calendario') }}" class="btn btn-sm btn-outline-primary">Hoje</a>
+    <a href="{{ url_for('calendario', year=next_year, month=next_month) }}"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-chevron-right"></i>
+    </a>
+  </div>
+</div>
+
+<!-- Legenda de regiões -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+  {% for r, c in cores_regiao.items() %}
+  <span class="chip" style="border-left:3px solid {{ c }};">{{ r }}</span>
+  {% endfor %}
+</div>
+
+<!-- Calendário -->
+<div class="card-panel">
+  <!-- Header dias da semana -->
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);">
+    {% for dia in ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'] %}
+    <div style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;
+                text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);
+                background:#f8fafc;">{{ dia }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- Grid -->
+  {% for week in weeks %}
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:{{ '1px solid var(--border)' if not loop.last else 'none' }};">
+    {% for day in week %}
+    <div class="cal-day {{ 'cal-day-other' if not day.in_month }} {{ 'cal-day-today' if day.today }}"
+         style="min-height:100px;padding:8px;border-right:{{ '1px solid var(--border)' if not loop.last else 'none' }};
+                background:{{ '#eff6ff' if day.today else ('#f8fafc' if not day.in_month else '#fff') }};
+                position:relative;">
+      <div style="font-size:12px;font-weight:{{ '800' if day.today else '500' }};
+                  color:{{ 'var(--accent)' if day.today else ('var(--text-muted)' if not day.in_month else 'var(--text)') }};
+                  margin-bottom:4px;">
+        {% if day.today %}
+        <span style="background:var(--accent);color:#fff;border-radius:50%;
+                     width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;">
+          {{ day.date.day }}
+        </span>
+        {% else %}
+        {{ day.date.day }}
+        {% endif %}
+      </div>
+
+      {% for s in day.services[:3] %}
+      {% set c = cores_regiao.get(s.regiao, '#64748b') %}
+      <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}"
+         style="display:block;margin-bottom:2px;text-decoration:none;
+                background:{{ c }}18;border-left:3px solid {{ c }};
+                border-radius:3px;padding:2px 5px;
+                font-size:10.5px;font-weight:600;color:#1e293b;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+         title="{{ s.numero }} – {{ s.servidor_responsavel or '' }} – {{ s.status }}">
+        {{ s.numero }}
+      </a>
+      {% endfor %}
+
+      {% if day.services|length > 3 %}
+      <div style="font-size:10px;color:var(--accent);font-weight:600;margin-top:2px;">
+        + {{ day.services|length - 3 }} mais
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

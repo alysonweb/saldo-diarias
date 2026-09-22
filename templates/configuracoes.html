@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Configurações{% endblock %}
+{% block page_title %}Configurações do Sistema{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">
+    <i class="fas fa-sliders me-2 text-primary"></i> Configurações
+  </h5>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="cfgTabs" role="tablist" style="border-color:var(--border);">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="email-tab" data-bs-toggle="tab" data-bs-target="#tab-email"
+            type="button" style="font-size:13.5px;font-weight:600;">
+      <i class="fas fa-envelope me-2"></i> E-mail SMTP
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="sistema-tab" data-bs-toggle="tab" data-bs-target="#tab-sistema"
+            type="button" style="font-size:13.5px;font-weight:600;">
+      <i class="fas fa-info-circle me-2"></i> Sistema
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- E-mail SMTP -->
+  <div class="tab-pane fade show active" id="tab-email">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <div class="panel-title"><i class="fas fa-server"></i> Configurações SMTP</div>
+          </div>
+          <div class="card-panel-body">
+            <form method="post" action="{{ url_for('configuracoes') }}">
+              <div class="row g-3">
+
+                <div class="col-md-8">
+                  <label class="form-label">Servidor SMTP</label>
+                  <input type="text" name="smtp_server" class="form-control"
+                         value="{{ cfgs.get('smtp_server', '') }}"
+                         placeholder="Ex: smtp.gmail.com">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Porta</label>
+                  <input type="number" name="smtp_port" class="form-control"
+                         value="{{ cfgs.get('smtp_port', '587') }}"
+                         placeholder="587">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Usuário SMTP</label>
+                  <input type="text" name="smtp_user" class="form-control"
+                         value="{{ cfgs.get('smtp_user', '') }}"
+                         placeholder="seu@email.gov.br">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Senha SMTP</label>
+                  <input type="password" name="smtp_pass" class="form-control"
+                         value="{{ cfgs.get('smtp_pass', '') }}"
+                         placeholder="Senha ou token de aplicativo">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">E-mail de Envio (From)</label>
+                  <input type="email" name="smtp_from" class="form-control"
+                         value="{{ cfgs.get('smtp_from', '') }}"
+                         placeholder="ditran@mds.gov.br">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">E-mail do Gestor (Notificações)</label>
+                  <input type="email" name="email_notif_gestor" class="form-control"
+                         value="{{ cfgs.get('email_notif_gestor', '') }}"
+                         placeholder="gestor@mds.gov.br">
+                </div>
+
+                <div class="col-12">
+                  <div class="alert-banner alert-banner-info" style="font-size:12.5px;">
+                    <i class="fas fa-info-circle"></i>
+                    Se o servidor SMTP estiver vazio, os e-mails não serão enviados (o sistema continuará funcionando normalmente).
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="d-flex gap-2 justify-content-end mt-4">
+                <button type="submit" name="testar" value="1" class="btn btn-outline-primary">
+                  <i class="fas fa-paper-plane me-1"></i> Testar Configuração
+                </button>
+                <button type="submit" class="btn btn-primary px-4">
+                  <i class="fas fa-save me-1"></i> Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sistema -->
+  <div class="tab-pane fade" id="tab-sistema">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card-panel">
+          <div class="card-panel-header">
+            <div class="panel-title"><i class="fas fa-database"></i> Informações do Sistema</div>
+          </div>
+          <div class="card-panel-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="info-cell">
+                  <div class="label">Versão</div>
+                  <div class="value fw-semibold">1.0.0</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-cell">
+                  <div class="label">Banco de Dados</div>
+                  <div class="value">SQLite</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="kpi-card kpi-primary">
+                  <div class="kpi-icon blue"><i class="fas fa-clipboard-list"></i></div>
+                  <div class="kpi-value">{{ total_sols }}</div>
+                  <div class="kpi-label">Solicitações</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="kpi-card kpi-success">
+                  <div class="kpi-icon green"><i class="fas fa-id-badge"></i></div>
+                  <div class="kpi-value">{{ total_mots }}</div>
+                  <div class="kpi-label">Motoristas</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="kpi-card kpi-warning">
+                  <div class="kpi-icon yellow"><i class="fas fa-users"></i></div>
+                  <div class="kpi-value">{{ total_users }}</div>
+                  <div class="kpi-label">Usuários</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% block title %}{{ sol.numero }}{% endblock %}
+{% block page_title %}{{ sol.numero }}{% endblock %}
+
+{% block content %}
+
+<!-- Cabeçalho -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+  <div>
+    <h4 style="font-weight:800;margin-bottom:8px;">{{ sol.numero }}</h4>
+    <span class="status-badge status-{{ sol.status.replace(' ','-') }}" style="font-size:13px;padding:5px 14px;">
+      {{ sol.status }}
+    </span>
+    <span class="chip ms-2">{{ sol.orgao }}</span>
+    <span class="chip ms-1">{{ sol.regiao }} · {{ sol.estado }}</span>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('duplicar_solicitacao', id=sol.id) }}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-copy me-1"></i> Duplicar
+    </a>
+    <a href="{{ url_for('imprimir_termo', id=sol.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-print me-1"></i> Imprimir Termo
+    </a>
+    {% if sol.status not in ('Concluída', 'Cancelada') %}
+    <a href="{{ url_for('editar_solicitacao', id=sol.id) }}" class="btn btn-sm btn-outline-primary">
+      <i class="fas fa-edit me-1"></i> Editar
+    </a>
+    {% endif %}
+    <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+</div>
+
+<!-- Timeline -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-route"></i> Fluxo de Atendimento</div>
+  </div>
+  <div class="card-panel-body">
+    <div class="timeline">
+      {% for st in status_list %}
+      {% set idx_atual = status_list.index(sol.status) if sol.status in status_list else -1 %}
+      {% set idx_st    = status_list.index(st) %}
+      <div class="tl-step {{ 'done' if idx_st < idx_atual else ('current' if idx_st == idx_atual else '') }}">
+        <div class="tl-dot">
+          {% if idx_st < idx_atual %}<i class="fas fa-check" style="font-size:10px;"></i>
+          {% else %}{{ idx_st + 1 }}{% endif %}
+        </div>
+        <div class="tl-label">{{ st }}</div>
+      </div>
+      {% endfor %}
+      <div class="tl-step cancel {{ 'current' if sol.status == 'Cancelada' }}">
+        <div class="tl-dot">
+          {% if sol.status == 'Cancelada' %}<i class="fas fa-times" style="font-size:10px;"></i>
+          {% else %}<i class="fas fa-ban" style="font-size:9px;opacity:.4;"></i>{% endif %}
+        </div>
+        <div class="tl-label">Cancelada</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Coluna principal ─────────────────────────────── -->
+  <div class="col-lg-8">
+
+    <!-- Período -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-calendar-alt"></i> Período e Localidade</div>
+        {% if sol.pernoite %}<span class="chip"><i class="fas fa-moon me-1"></i>Pernoite</span>{% endif %}
+      </div>
+      <div class="card-panel-body">
+        <div class="row g-3">
+          <div class="col-6 col-md-3"><div class="info-cell">
+            <div class="label">Início</div><div class="value fw-semibold">{{ sol.data_inicio.strftime('%d/%m/%Y') }}</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="info-cell">
+            <div class="label">Fim</div><div class="value fw-semibold">{{ sol.data_fim.strftime('%d/%m/%Y') }}</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="info-cell">
+            <div class="label">Duração</div><div class="value">{{ sol.duracao_dias }} dia(s)</div>
+          </div></div>
+          <div class="col-6 col-md-3"><div class="info-cell">
+            <div class="label">Região / UF</div><div class="value">{{ sol.regiao }} · <strong>{{ sol.estado }}</strong></div>
+          </div></div>
+          {% if sol.local_inicio %}
+          <div class="col-12"><div class="info-cell">
+            <div class="label">Local de Início</div><div class="value">{{ sol.local_inicio }}</div>
+          </div></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Servidores -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-users"></i> Servidores</div>
+        <span class="chip">{{ sol.orgao }}</span>
+      </div>
+      <div class="card-panel-body">
+        <div class="row g-3">
+          <div class="col-md-8"><div class="info-cell">
+            <div class="label">Servidor Responsável</div>
+            <div class="value fw-semibold" style="font-size:15px;">{{ sol.servidor_responsavel or '—' }}</div>
+          </div></div>
+          <div class="col-md-4"><div class="info-cell">
+            <div class="label">Contato</div>
+            <div class="value">
+              {% if sol.contato_responsavel %}
+              <a href="tel:{{ sol.contato_responsavel }}" class="link-clean text-accent">
+                <i class="fas fa-phone fa-xs me-1"></i>{{ sol.contato_responsavel }}
+              </a>{% else %}—{% endif %}
+            </div>
+          </div></div>
+          {% if sol.unidade_secretaria %}<div class="col-12"><div class="info-cell">
+            <div class="label">Unidade / Secretaria</div><div class="value">{{ sol.unidade_secretaria }}</div>
+          </div></div>{% endif %}
+          {% if sol.servidores_adicionais %}<div class="col-12"><div class="info-cell">
+            <div class="label">Servidores Adicionais</div>
+            <div class="value" style="white-space:pre-line;">{{ sol.servidores_adicionais }}</div>
+          </div></div>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Veículo -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header"><div class="panel-title"><i class="fas fa-car"></i> Veículo e Diárias</div></div>
+      <div class="card-panel-body">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4"><div class="info-cell">
+            <div class="label">Categoria</div><div class="value fw-semibold">{{ sol.categoria_veiculo or '—' }}</div>
+          </div></div>
+          <div class="col-md-3"><div class="info-cell">
+            <div class="label">Tipo de Diária</div><div class="value">{{ sol.tipo_diaria or '—' }}</div>
+          </div></div>
+          <div class="col-md-2"><div class="info-cell">
+            <div class="label">Qtd.</div>
+            <div class="value" style="font-size:26px;font-weight:800;color:var(--accent);">{{ sol.quantidade_diarias }}</div>
+          </div></div>
+          <div class="col-md-3"><div class="info-cell">
+            <div class="label">Valor Total</div>
+            <div class="value fw-semibold" style="color:var(--success);">
+              {% if sol.valor_total > 0 %}R$ {{ '%.2f'|format(sol.valor_total)|replace('.', ',') }}{% else %}—{% endif %}
+            </div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Motorista -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header"><div class="panel-title"><i class="fas fa-id-badge"></i> Motorista Designado</div></div>
+      <div class="card-panel-body">
+        {% if sol.motorista_nome %}
+        <div class="row g-3">
+          <div class="col-md-6"><div class="info-cell">
+            <div class="label">Nome</div>
+            <div class="value fw-semibold" style="font-size:15px;">{{ sol.motorista_nome }}</div>
+          </div></div>
+          <div class="col-md-4"><div class="info-cell">
+            <div class="label">Telefone</div>
+            <div class="value">
+              {% if sol.motorista_telefone %}
+              <a href="tel:{{ sol.motorista_telefone }}" class="link-clean text-accent">
+                <i class="fas fa-phone fa-xs me-1"></i>{{ sol.motorista_telefone }}
+              </a>{% else %}—{% endif %}
+            </div>
+          </div></div>
+        </div>
+        {% else %}
+        <div class="empty-state py-3">
+          <i class="fas fa-id-badge"></i> Motorista ainda não designado.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- E-mails -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header"><div class="panel-title"><i class="fas fa-envelope"></i> Modelos de E-mail</div></div>
+      <div class="card-panel-body">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+          Siga a ordem conforme o fluxo de atendimento:
+        </p>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          <button class="btn btn-sm btn-outline-warning" onclick="toggleEmail('emailMobGov', this)" title="Etapa 1A — quando não há justificativa">
+            <i class="fas fa-eye me-1"></i> 1A · Indicação MobGov
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="toggleEmail('emailRecebimento', this)" title="Etapa 1B — quando já há justificativa">
+            <i class="fas fa-eye me-1"></i> 1B · Recebimento da Demanda
+          </button>
+          <button class="btn btn-sm btn-outline-primary" onclick="toggleEmail('emailTermo', this)" title="Etapa 2">
+            <i class="fas fa-eye me-1"></i> 2 · Termo de Ciência
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="toggleEmail('emailScdp', this)" title="Etapa 3 — quando há auxílio deslocamento no SCDP">
+            <i class="fas fa-eye me-1"></i> 3 · Verificação SCDP
+          </button>
+          {% if sol.motorista_nome %}
+          <button class="btn btn-sm btn-outline-success" onclick="toggleEmail('emailContato', this)" title="Etapa 4 — envio do contato do motorista">
+            <i class="fas fa-eye me-1"></i> 4 · Contato do Motorista
+          </button>
+          {% endif %}
+          <a href="{{ url_for('imprimir_termo', id=sol.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-print me-1"></i> Imprimir Termo
+          </a>
+        </div>
+
+        <!-- 1A - Indicação MobGov -->
+        <div id="emailMobGov" style="display:none;">
+          <div class="alert-banner alert-banner-warning mb-2" style="font-size:12px;">
+            <i class="fas fa-info-circle"></i> Use quando a solicitação <strong>não apresenta justificativa</strong> para inviabilidade do MobGov.
+          </div>
+          <div class="email-box" id="textMobGov">Prezados,
+
+Em atenção à solicitação recebida, informamos que, para deslocamentos institucionais, deve ser priorizado o uso da plataforma MobGov, serviço oficial de transporte da Administração Pública Federal, em conformidade com as normas vigentes, pelos princípios da economicidade, eficiência e transparência.
+
+O uso do MobGov favorece uma gestão pública mais racional, eficiente e transparente, com redução de custos e acompanhamento em tempo real.
+
+Caso a solicitação por diária seja mantida, será necessária justificativa que comprove a inviabilidade do atendimento via MobGov.
+
+Atenciosamente,
+DITRAN/MDS</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="copiar('textMobGov')">
+            <i class="fas fa-copy me-1"></i> Copiar
+          </button>
+        </div>
+
+        <!-- 1B - Recebimento da Demanda -->
+        <div id="emailRecebimento" style="display:none;">
+          <div class="alert-banner alert-banner-primary mb-2" style="font-size:12px;">
+            <i class="fas fa-info-circle"></i> Use quando a solicitação <strong>já apresenta justificativa</strong> de inviabilidade do MobGov.
+          </div>
+          <div class="email-box" id="textRecebimento">Prezados,
+
+Informamos que a solicitação foi devidamente recebida e encontra-se em tratamento. Assim que tivermos o contato do motorista designado para o atendimento, as informações serão repassadas.
+
+Solicitamos o envio de print (captura de tela) demonstrando o erro apresentado no aplicativo MobGov, a fim de que possamos relatar o ocorrido ao MGI para as devidas providências.
+
+Atenciosamente,
+DITRAN/MDS</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="copiar('textRecebimento')">
+            <i class="fas fa-copy me-1"></i> Copiar
+          </button>
+        </div>
+
+        <!-- 2 - Termo de Ciência -->
+        <div id="emailTermo" style="display:none;">
+          <div class="email-box" id="textTermo">Prezado(a) {{ sol.servidor_responsavel or '[NOME DO SERVIDOR]' }},
+
+Em cumprimento às normas vigentes, informamos que a utilização de veículo oficial em deslocamento para os estados deve observar rigorosamente o Decreto nº 9.287/2018 e demais regulamentações correlatas.
+
+I – Período: o serviço baseia-se em diária de {{ sol.tipo_diaria or '10h' }}, devendo ser respeitados os horários de início e término previstos.
+
+II – Vedação ao auxílio-deslocamento: é vedado o uso de veículo oficial para transporte individual entre residência e local de trabalho (Decreto nº 5.992/2006).
+
+III – Assinatura da Requisição: ao final do serviço, o servidor deverá assinar a requisição de transporte.
+
+IV – Cancelamento: comunicar à DITRAN com antecedência mínima de 3 horas.
+
+Dados do serviço:
+• Solicitação: {{ sol.numero }}
+• Período: {{ sol.data_inicio.strftime('%d/%m/%Y') }} a {{ sol.data_fim.strftime('%d/%m/%Y') }}
+• Local: {{ sol.estado }}{% if sol.local_inicio %} – {{ sol.local_inicio }}{% endif %}
+{% if sol.motorista_nome %}• Motorista: {{ sol.motorista_nome }}{% if sol.motorista_telefone %} – {{ sol.motorista_telefone }}{% endif %}
+{% endif %}• Veículo: {{ sol.categoria_veiculo or '—' }} ({{ sol.tipo_diaria or '—' }})
+
+Atenciosamente,
+DITRAN/MDS</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="copiar('textTermo')">
+            <i class="fas fa-copy me-1"></i> Copiar
+          </button>
+        </div>
+
+        <!-- 3 - Verificação SCDP -->
+        <div id="emailScdp" style="display:none;">
+          <div class="alert-banner alert-banner-danger mb-2" style="font-size:12px;">
+            <i class="fas fa-exclamation-triangle"></i> Use quando for identificado <strong>auxílio deslocamento no SCDP</strong> após ciência das orientações.
+          </div>
+          <div class="email-box" id="textScdp">Prezados, boa tarde.
+
+Conforme consulta realizada no Sistema de Concessão de Diárias e Passagens (SCDP), verificamos o recebimento de auxílio deslocamento após ciência das orientações encaminhadas sobre a vedação prevista no art. 6º, inciso IV, do Decreto nº 9.287/2018.
+
+Ressaltamos que o recebimento do auxílio deslocamento é incompatível com o uso de veículo oficial, conforme as normas vigentes.
+
+Solicitamos, por gentileza, o envio de esclarecimento sobre o ocorrido.
+
+Atenciosamente,
+DITRAN/MDS</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="copiar('textScdp')">
+            <i class="fas fa-copy me-1"></i> Copiar
+          </button>
+        </div>
+
+        <!-- 4 - Contato do Motorista -->
+        {% if sol.motorista_nome %}
+        <div id="emailContato" style="display:none;">
+          <div class="email-box" id="textContato">Prezados,
+
+Informamos que o atendimento referente à solicitação {{ sol.numero }} está confirmado com o seguinte motorista:
+
+• Motorista: {{ sol.motorista_nome }}{% if sol.motorista_telefone %}
+• Contato: {{ sol.motorista_telefone }}{% endif %}
+• Período: {{ sol.data_inicio.strftime('%d/%m/%Y') }} a {{ sol.data_fim.strftime('%d/%m/%Y') }}
+• Veículo: {{ sol.categoria_veiculo or '—' }} ({{ sol.tipo_diaria or '—' }}){% if sol.local_inicio %}
+• Local de início: {{ sol.local_inicio }}{% endif %}
+
+Atenciosamente,
+DITRAN/MDS</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="copiar('textContato')">
+            <i class="fas fa-copy me-1"></i> Copiar
+          </button>
+        </div>
+        {% endif %}
+
+        <div id="copyFeedback" class="alert-banner alert-banner-success mt-2" style="display:none;">
+          <i class="fas fa-check-circle"></i> Copiado para a área de transferência!
+        </div>
+      </div>
+    </div>
+
+    {% if sol.observacoes %}
+    <div class="card-panel mb-3">
+      <div class="card-panel-header"><div class="panel-title"><i class="fas fa-comment-alt"></i> Observações</div></div>
+      <div class="card-panel-body">
+        <p style="white-space:pre-line;font-size:13.5px;margin:0;">{{ sol.observacoes }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Aceite Eletrônico ── -->
+    {% if sol.status in ('Termo Enviado', 'Confirmada') %}
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-signature"></i> Aceite Eletrônico</div>
+      </div>
+      <div class="card-panel-body">
+        {% if sol.aceite_eletronico and sol.aceite_data %}
+        <div class="alert-banner alert-banner-success">
+          <i class="fas fa-check-circle"></i>
+          Aceite registrado em <strong>{{ sol.aceite_data.strftime('%d/%m/%Y às %H:%M') }}</strong>
+        </div>
+        {% else %}
+        <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:14px;">
+          O servidor ainda não confirmou o recebimento do termo eletronicamente.
+        </p>
+        <form method="post" action="{{ url_for('registrar_aceite', id=sol.id) }}"
+              onsubmit="return confirm('Confirmar aceite eletrônico do termo de notificação?')">
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="fas fa-signature me-1"></i> Registrar Aceite Eletrônico
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Comentários ── -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-comments"></i> Comentários</div>
+        <span class="chip">{{ sol.comentarios|length }}</span>
+      </div>
+      <div class="card-panel-body">
+        {% if sol.comentarios %}
+        <div class="mb-4" style="border-left:2px solid var(--border);padding-left:16px;">
+          {% for c in sol.comentarios %}
+          <div class="d-flex gap-3 mb-3 align-items-start">
+            <span style="width:36px;height:36px;background:var(--accent-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--accent);flex-shrink:0;">
+              {{ (c.usuario.nome[:2].upper() if c.usuario else 'US') }}
+            </span>
+            <div style="flex:1;">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-semibold" style="font-size:13px;">{{ c.usuario.nome if c.usuario else 'Sistema' }}</span>
+                <span style="font-size:11.5px;color:var(--text-muted);">{{ c.data.strftime('%d/%m/%Y %H:%M') }}</span>
+              </div>
+              <p style="font-size:13.5px;margin:0;white-space:pre-line;color:var(--text);">{{ c.texto }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-2">
+          <i class="fas fa-comments"></i>
+          <p>Nenhum comentário ainda.</p>
+        </div>
+        {% endif %}
+
+        <!-- Formulário de comentário -->
+        <form method="post" action="{{ url_for('adicionar_comentario', id=sol.id) }}">
+          <div class="mb-2">
+            <textarea name="texto" class="form-control" rows="2"
+                      placeholder="Adicionar comentário..."
+                      style="resize:vertical;"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fas fa-paper-plane me-1"></i> Comentar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Anexos ── -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-paperclip"></i> Anexos</div>
+        <span class="chip">{{ sol.anexos|length }}</span>
+      </div>
+      <div class="card-panel-body">
+        {% if sol.anexos %}
+        <div class="row g-2 mb-4">
+          {% for a in sol.anexos %}
+          <div class="col-md-6">
+            <div style="border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;display:flex;gap:12px;align-items:center;">
+              <i class="fas {{ a.icone_tipo }}" style="font-size:24px;color:var(--accent);flex-shrink:0;"></i>
+              <div style="flex:1;min-width:0;">
+                <div class="fw-semibold" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  {{ a.nome_original }}
+                </div>
+                <div style="font-size:11.5px;color:var(--text-muted);">
+                  {{ '%.1f'|format(a.tamanho_bytes / 1024) }} KB · {{ a.data.strftime('%d/%m/%Y') }}
+                  {% if a.usuario %} · {{ a.usuario.nome.split()[0] }}{% endif %}
+                </div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <a href="{{ url_for('baixar_anexo', id=sol.id, filename=a.nome_arquivo) }}"
+                   class="btn btn-sm btn-outline-primary" style="font-size:11px;padding:4px 8px;" title="Baixar">
+                  <i class="fas fa-download"></i>
+                </a>
+                {% if current_user.perfil in ('admin', 'gestor') or a.usuario_id == current_user.id %}
+                <form method="post" action="{{ url_for('deletar_anexo', id=sol.id, aid=a.id) }}"
+                      onsubmit="return confirm('Remover este anexo?')" style="display:inline;">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:4px 8px;" title="Remover">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state py-2">
+          <i class="fas fa-paperclip"></i>
+          <p>Nenhum anexo ainda.</p>
+        </div>
+        {% endif %}
+
+        <!-- Upload -->
+        <form method="post" action="{{ url_for('upload_anexo', id=sol.id) }}" enctype="multipart/form-data">
+          <label for="arquivoUpload"
+                 style="display:block;border:2px dashed var(--border);border-radius:var(--r-sm);padding:20px;text-align:center;cursor:pointer;transition:border var(--transition),background var(--transition);"
+                 id="dropZone">
+            <i class="fas fa-cloud-upload-alt" style="font-size:22px;color:var(--text-muted);display:block;margin-bottom:6px;"></i>
+            <span style="font-size:13.5px;color:var(--text-muted);">Arraste um arquivo ou <strong style="color:var(--accent);">clique para selecionar</strong></span>
+            <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">PDF, Word, Excel, Imagens (máx. 10 MB)</div>
+            <input type="file" id="arquivoUpload" name="arquivo"
+                   accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
+                   style="display:none;">
+          </label>
+          <div id="fileName" style="font-size:13px;color:var(--accent);margin-top:8px;display:none;"></div>
+          <button type="submit" class="btn btn-primary btn-sm mt-2" id="uploadBtn" style="display:none;">
+            <i class="fas fa-upload me-1"></i> Enviar Arquivo
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Histórico de Status -->
+    <div class="card-panel mb-3">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-clock-rotate-left"></i> Histórico de Status</div>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data / Hora</th>
+              <th>De</th>
+              <th></th>
+              <th>Para</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in sol.historico_status %}
+            <tr style="cursor:default;">
+              <td style="font-size:12px;white-space:nowrap;">{{ h.data.strftime('%d/%m/%Y %H:%M') }}</td>
+              <td>
+                {% if h.status_anterior %}
+                <span class="status-badge status-{{ h.status_anterior.replace(' ','-') }}" style="font-size:10.5px;">
+                  {{ h.status_anterior }}
+                </span>
+                {% else %}<span style="color:var(--text-muted);font-size:12px;">—</span>{% endif %}
+              </td>
+              <td style="color:var(--text-muted);"><i class="fas fa-arrow-right fa-xs"></i></td>
+              <td>
+                <span class="status-badge status-{{ h.status_novo.replace(' ','-') }}" style="font-size:10.5px;">
+                  {{ h.status_novo }}
+                </span>
+              </td>
+              <td style="font-size:12.5px;color:var(--text-muted);">{{ h.observacao or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3" style="font-size:13px;">
+              Nenhum histórico registrado.
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Coluna de ações ───────────────────────────────── -->
+  <div class="col-lg-4">
+
+    <div class="card-panel mb-3">
+      <div class="card-panel-body">
+        <div class="row g-2">
+          <div class="col-6"><div class="info-cell">
+            <div class="label">Número</div><div class="value fw-semibold text-accent">{{ sol.numero }}</div>
+          </div></div>
+          <div class="col-6"><div class="info-cell">
+            <div class="label">Criada em</div><div class="value">{{ sol.data_criacao.strftime('%d/%m/%Y') }}</div>
+          </div></div>
+          {% if sol.criado_por %}
+          <div class="col-12"><div class="info-cell">
+            <div class="label">Criada por</div>
+            <div class="value" style="font-size:13px;">{{ sol.criado_por.nome }}</div>
+          </div></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if sol.status not in ('Concluída', 'Cancelada') and prox %}
+    <div class="action-card advance mb-3">
+      <div class="action-header"><i class="fas fa-arrow-right"></i> Próximo: {{ prox }}</div>
+      <div class="action-body">
+        <form method="post" action="{{ url_for('avancar_status', id=sol.id) }}">
+          {% if prox == 'Motorista Designado' %}
+          <div class="mb-3">
+            <label class="form-label">Nome do Motorista <span class="text-danger">*</span></label>
+            <input type="text" name="motorista_nome" class="form-control form-control-sm"
+                   value="{{ sol.motorista_nome or '' }}" required placeholder="Nome completo">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Telefone</label>
+            <input type="text" name="motorista_telefone" class="form-control form-control-sm"
+                   value="{{ sol.motorista_telefone or '' }}" placeholder="(00) 9 0000-0000">
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="fas fa-check me-1"></i> Confirmar: {{ prox }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sol.status not in ('Concluída', 'Cancelada') %}
+    <div class="action-card cancel-card">
+      <div class="action-header"><i class="fas fa-ban"></i> Cancelar Solicitação</div>
+      <div class="action-body">
+        <form method="post" action="{{ url_for('cancelar_solicitacao', id=sol.id) }}"
+              onsubmit="return confirm('Confirmar cancelamento?')">
+          <div class="mb-2">
+            <textarea name="motivo" class="form-control form-control-sm" rows="2"
+                      placeholder="Motivo (opcional)"></textarea>
+          </div>
+          <button type="submit" class="btn btn-sm w-100"
+                  style="background:var(--danger);color:#fff;border:none;">
+            <i class="fas fa-times me-1"></i> Cancelar
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const emailIds = ['emailMobGov','emailRecebimento','emailTermo','emailScdp','emailContato'];
+function toggleEmail(id, btn) {
+  const el = document.getElementById(id);
+  const show = el.style.display === 'none';
+  emailIds.forEach(eid => { const e = document.getElementById(eid); if(e) e.style.display = 'none'; });
+  document.querySelectorAll('[onclick^="toggleEmail"]').forEach(b => b.innerHTML = b.innerHTML.replace('fa-eye-slash','fa-eye'));
+  if (show) {
+    el.style.display = 'block';
+    btn.innerHTML = btn.innerHTML.replace('fa-eye','fa-eye-slash');
+  }
+}
+
+function copiar(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const fb = document.getElementById('copyFeedback');
+    fb.style.display = 'flex';
+    setTimeout(() => fb.style.display = 'none', 3000);
+  });
+}
+
+// Upload drag & drop
+const input    = document.getElementById('arquivoUpload');
+const dropZone = document.getElementById('dropZone');
+const fileInfo = document.getElementById('fileName');
+const uploadBtn= document.getElementById('uploadBtn');
+
+input?.addEventListener('change', () => {
+  if (input.files.length) {
+    fileInfo.textContent = input.files[0].name;
+    fileInfo.style.display = 'block';
+    uploadBtn.style.display = 'inline-block';
+    dropZone.style.borderColor = 'var(--accent)';
+    dropZone.style.background  = 'var(--accent-soft)';
+  }
+});
+
+dropZone?.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = 'var(--accent)';
+  dropZone.style.background  = 'var(--accent-soft)';
+});
+
+dropZone?.addEventListener('dragleave', () => {
+  dropZone.style.borderColor = 'var(--border)';
+  dropZone.style.background  = '';
+});
+
+dropZone?.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) {
+    input.files = e.dataTransfer.files;
+    fileInfo.textContent = e.dataTransfer.files[0].name;
+    fileInfo.style.display = 'block';
+    uploadBtn.style.display = 'inline-block';
+  }
+});
+</script>
+{% endblock %}

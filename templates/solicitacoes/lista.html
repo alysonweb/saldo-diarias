@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Solicitações{% endblock %}
+{% block page_title %}Solicitações de Veículos{% endblock %}
+
+{% block content %}
+
+<!-- ── Filtros ─────────────────────────────────────────────── -->
+<div class="card-panel mb-4">
+  <div class="card-panel-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Buscar</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text" style="background:#fff;border-right:none;">
+            <i class="fas fa-search" style="color:var(--text-muted);font-size:12px;"></i>
+          </span>
+          <input type="text" name="q" class="form-control"
+                 style="border-left:none;"
+                 placeholder="Número, servidor, UF, motorista..."
+                 value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          {% for s in status_list %}
+          <option value="{{ s }}" {{ 'selected' if s == status_f }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Região</label>
+        <select name="regiao" class="form-select form-select-sm">
+          <option value="">Todas</option>
+          {% for r in regioes %}
+          <option value="{{ r }}" {{ 'selected' if r == regiao_f }}>{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Órgão</label>
+        <select name="orgao" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          {% for o in orgaos %}
+          <option value="{{ o }}" {{ 'selected' if o == orgao_f }}>{{ o }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-fill">
+          <i class="fas fa-search me-1"></i> Filtrar
+        </button>
+        <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-times"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Tabela ──────────────────────────────────────────────── -->
+<div class="card-panel">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-clipboard-list"></i> Solicitações</div>
+    <span style="font-size:12px;color:var(--text-muted);">{{ items|length }} resultado(s)</span>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Período</th>
+          <th>Região / UF</th>
+          <th>Órgão</th>
+          <th>Servidor Responsável</th>
+          <th>Veículo / Tipo</th>
+          <th style="text-align:center;">Diárias</th>
+          <th style="text-align:right;">Valor Total</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in items %}
+        <tr onclick="window.location='{{ url_for('detalhe_solicitacao', id=s.id) }}'">
+          <td>
+            <span style="font-weight:700;color:var(--accent);">{{ s.numero }}</span>
+            {% if s.pernoite %}
+            <span class="chip ms-1" style="font-size:10px;padding:1px 6px;" title="Pernoite">
+              <i class="fas fa-moon fa-xs"></i>
+            </span>
+            {% endif %}
+          </td>
+          <td style="font-size:12.5px;white-space:nowrap;">
+            {{ s.data_inicio.strftime('%d/%m/%Y') }}<br>
+            <span style="color:var(--text-muted);">{{ s.data_fim.strftime('%d/%m/%Y') }}</span>
+          </td>
+          <td style="font-size:12.5px;">
+            <span style="color:var(--text-muted);">{{ s.regiao }}</span><br>
+            <strong>{{ s.estado }}</strong>
+          </td>
+          <td>
+            <span class="chip">{{ s.orgao }}</span>
+          </td>
+          <td style="font-size:13px;max-width:160px;">
+            {{ s.servidor_responsavel or '—' }}
+          </td>
+          <td style="font-size:12.5px;">
+            {{ s.categoria_veiculo or '—' }}<br>
+            <span style="color:var(--text-muted);">{{ s.tipo_diaria }}</span>
+          </td>
+          <td style="text-align:center;">
+            <span class="chip">{{ s.quantidade_diarias }}</span>
+          </td>
+          <td style="text-align:right;font-size:13px;">
+            {% if s.valor_total > 0 %}
+            <span style="color:var(--success);font-weight:600;">
+              R$ {{ '%.2f'|format(s.valor_total)|replace('.', ',') }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="status-badge status-{{ s.status.replace(' ','-') }}">{{ s.status }}</span>
+          </td>
+          <td>
+            <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}"
+               class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
+              <i class="fas fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10">
+            <div class="empty-state">
+              <i class="fas fa-clipboard-list"></i>
+              Nenhuma solicitação encontrada com os filtros aplicados.
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

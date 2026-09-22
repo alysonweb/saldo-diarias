@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Relatório de Conformidade{% endblock %}
+{% block page_title %}Relatório de Conformidade{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">
+    <i class="fas fa-shield-halved me-2 text-primary"></i> Relatório de Conformidade
+  </h5>
+  <span class="badge {{ 'bg-danger' if total_problemas > 0 else 'bg-success' }}" style="font-size:13px;padding:8px 16px;">
+    <i class="fas fa-{{ 'exclamation-triangle' if total_problemas > 0 else 'check-circle' }} me-1"></i>
+    {{ total_problemas }} problema(s) encontrado(s)
+  </span>
+</div>
+
+<!-- KPIs resumo -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card {{ 'kpi-danger' if vencidos else 'kpi-success' }}">
+      <div class="kpi-icon {{ 'red' if vencidos else 'green' }}">
+        <i class="fas fa-calendar-xmark"></i>
+      </div>
+      <div class="kpi-value">{{ vencidos|length }}</div>
+      <div class="kpi-label">Serviços Vencidos</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card {{ 'kpi-warning' if conflitos else 'kpi-success' }}">
+      <div class="kpi-icon {{ 'yellow' if conflitos else 'green' }}">
+        <i class="fas fa-code-branch"></i>
+      </div>
+      <div class="kpi-value">{{ conflitos|length }}</div>
+      <div class="kpi-label">Conflitos de Período</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card {{ 'kpi-warning' if sem_motorista else 'kpi-success' }}">
+      <div class="kpi-icon {{ 'yellow' if sem_motorista else 'green' }}">
+        <i class="fas fa-id-badge"></i>
+      </div>
+      <div class="kpi-value">{{ sem_motorista|length }}</div>
+      <div class="kpi-label">Sem Motorista</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon blue">
+        <i class="fas fa-ban"></i>
+      </div>
+      <div class="kpi-value">{{ cancelados_recentes|length }}</div>
+      <div class="kpi-label">Cancelados (30 dias)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Serviços Vencidos -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title">
+      <i class="fas fa-calendar-xmark" style="color:var(--danger);"></i>
+      Serviços Vencidos
+    </div>
+    <span class="chip {{ 'text-danger' if vencidos }}">{{ vencidos|length }}</span>
+  </div>
+  {% if vencidos %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Servidor</th>
+          <th>Data Fim</th>
+          <th>Dias Vencidos</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in vencidos %}
+        <tr>
+          <td><a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="link-clean text-accent fw-semibold">{{ s.numero }}</a></td>
+          <td>{{ s.servidor_responsavel or '—' }}</td>
+          <td>{{ s.data_fim.strftime('%d/%m/%Y') }}</td>
+          <td>
+            <span class="badge bg-danger">
+              {{ (hoje - s.data_fim).days }} dias
+            </span>
+          </td>
+          <td><span class="status-badge status-{{ s.status.replace(' ','-') }}" style="font-size:11px;">{{ s.status }}</span></td>
+          <td>
+            <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="btn btn-sm btn-outline-primary" style="font-size:11px;">
+              Ver <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-check-circle" style="color:var(--success);"></i>
+    <p>Nenhum serviço vencido.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Conflitos de Período -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title">
+      <i class="fas fa-code-branch" style="color:var(--warning);"></i>
+      Conflitos de Período (mesmo servidor)
+    </div>
+    <span class="chip">{{ conflitos|length }} servidor(es)</span>
+  </div>
+  {% if conflitos %}
+  <div class="card-panel-body">
+    {% for servidor, sols in conflitos.items() %}
+    <div class="mb-4">
+      <div class="fw-semibold mb-2" style="font-size:13.5px;">
+        <i class="fas fa-user me-2 text-warning"></i> {{ servidor }}
+      </div>
+      <div class="ms-4 d-flex flex-wrap gap-2">
+        {% for s in sols %}
+        <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}"
+           style="border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--text);display:inline-block;font-size:13px;">
+          <span class="fw-semibold text-accent">{{ s.numero }}</span>
+          <span style="color:var(--text-muted);"> — {{ s.data_inicio.strftime('%d/%m') }}–{{ s.data_fim.strftime('%d/%m/%Y') }}</span>
+          <span class="status-badge status-{{ s.status.replace(' ','-') }} ms-1" style="font-size:10.5px;">{{ s.status }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-check-circle" style="color:var(--success);"></i>
+    <p>Nenhum conflito de período.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pendências de Motorista -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title">
+      <i class="fas fa-id-badge" style="color:var(--warning);"></i>
+      Pendências de Motorista
+    </div>
+    <span class="chip">{{ sem_motorista|length }}</span>
+  </div>
+  {% if sem_motorista %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr><th>Número</th><th>Servidor</th><th>Período</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for s in sem_motorista %}
+        <tr>
+          <td><a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="link-clean text-accent fw-semibold">{{ s.numero }}</a></td>
+          <td>{{ s.servidor_responsavel or '—' }}</td>
+          <td style="font-size:12.5px;">{{ s.data_inicio.strftime('%d/%m/%Y') }} – {{ s.data_fim.strftime('%d/%m/%Y') }}</td>
+          <td><span class="status-badge status-{{ s.status.replace(' ','-') }}" style="font-size:11px;">{{ s.status }}</span></td>
+          <td><a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="btn btn-sm btn-outline-warning" style="font-size:11px;">Designar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-check-circle" style="color:var(--success);"></i>
+    <p>Nenhuma pendência de motorista.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Cancelamentos Recentes -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title">
+      <i class="fas fa-ban" style="color:var(--danger);"></i>
+      Cancelamentos Recentes (últimos 30 dias)
+    </div>
+    <span class="chip">{{ cancelados_recentes|length }}</span>
+  </div>
+  {% if cancelados_recentes %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr><th>Número</th><th>Servidor</th><th>Período</th><th>Criada em</th><th>Motivo</th></tr>
+      </thead>
+      <tbody>
+        {% for s in cancelados_recentes %}
+        <tr>
+          <td><a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="link-clean text-accent fw-semibold">{{ s.numero }}</a></td>
+          <td>{{ s.servidor_responsavel or '—' }}</td>
+          <td style="font-size:12.5px;">{{ s.data_inicio.strftime('%d/%m/%Y') }} – {{ s.data_fim.strftime('%d/%m/%Y') }}</td>
+          <td style="font-size:12px;color:var(--text-muted);">{{ s.data_criacao.strftime('%d/%m/%Y') }}</td>
+          <td style="font-size:12.5px;color:var(--text-muted);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ s.observacoes or '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-check-circle" style="color:var(--success);"></i>
+    <p>Nenhum cancelamento recente.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

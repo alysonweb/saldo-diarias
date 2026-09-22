@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block page_title %}Relatórios Gerenciais{% endblock %}
+
+{% block content %}
+
+<!-- KPIs topo -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon blue"><i class="fas fa-layer-group"></i></div>
+      <div class="kpi-value">{{ total }}</div>
+      <div class="kpi-label">Total de Solicitações</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-warning">
+      <div class="kpi-icon yellow"><i class="fas fa-spinner"></i></div>
+      <div class="kpi-value" style="color:var(--warning);">{{ total_ativas }}</div>
+      <div class="kpi-label">Em Andamento</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-success">
+      <div class="kpi-icon green"><i class="fas fa-flag-checkered"></i></div>
+      <div class="kpi-value" style="color:var(--success);">{{ total_concluidas }}</div>
+      <div class="kpi-label">Concluídas</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-danger">
+      <div class="kpi-icon red"><i class="fas fa-ban"></i></div>
+      <div class="kpi-value" style="color:var(--danger);">{{ total_canceladas }}</div>
+      <div class="kpi-label">Canceladas</div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráficos linha 1 -->
+<div class="row g-4 mb-4">
+
+  <!-- Evolução mensal -->
+  <div class="col-12 col-lg-8">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-chart-line"></i> Solicitações e Diárias — Últimos 12 Meses</div>
+      </div>
+      <div class="card-panel-body" style="min-height:280px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="monthlyChart" style="max-height:260px;width:100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribuição de status -->
+  <div class="col-12 col-lg-4">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-chart-donut"></i> Distribuição por Status</div>
+      </div>
+      <div class="card-panel-body d-flex flex-column align-items-center justify-content-center" style="min-height:280px;">
+        <canvas id="statusChart" style="max-width:200px;max-height:200px;"></canvas>
+        <div class="mt-3 w-100">
+          {% for row in by_status %}
+          <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:12.5px;">
+            <span class="status-badge status-{{ row.status.replace(' ','-') }}" style="font-size:11px;">{{ row.status }}</span>
+            <strong>{{ row.total }}</strong>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Gráficos linha 2 -->
+<div class="row g-4 mb-4">
+
+  <!-- Por região -->
+  <div class="col-12 col-md-6">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-map-marked-alt"></i> Por Região</div>
+      </div>
+      <div class="card-panel-body" style="min-height:220px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="regiaoChart" style="max-height:200px;width:100%;"></canvas>
+      </div>
+      <div class="px-4 pb-4">
+        <table class="data-table">
+          <thead><tr><th>Região</th><th style="text-align:center;">Solicitações</th><th style="text-align:right;">Diárias</th></tr></thead>
+          <tbody>
+            {% for row in by_regiao %}
+            <tr style="cursor:default;">
+              <td style="font-size:13px;font-weight:600;">{{ row.regiao or '—' }}</td>
+              <td style="text-align:center;"><span class="chip">{{ row.total }}</span></td>
+              <td style="text-align:right;font-size:13px;font-weight:600;">{{ row.diarias or 0 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Por categoria de veículo -->
+  <div class="col-12 col-md-6">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-car"></i> Por Categoria de Veículo</div>
+      </div>
+      <div class="card-panel-body" style="min-height:220px;display:flex;align-items:center;justify-content:center;">
+        <canvas id="catChart" style="max-height:200px;width:100%;"></canvas>
+      </div>
+      <div class="px-4 pb-4">
+        <table class="data-table">
+          <thead><tr><th>Categoria</th><th style="text-align:center;">Solicitações</th><th style="text-align:right;">Diárias</th></tr></thead>
+          <tbody>
+            {% for row in by_cat %}
+            <tr style="cursor:default;">
+              <td style="font-size:13px;font-weight:600;">{{ row.categoria_veiculo or '—' }}</td>
+              <td style="text-align:center;"><span class="chip">{{ row.total }}</span></td>
+              <td style="text-align:right;font-size:13px;font-weight:600;">{{ row.diarias or 0 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Top servidores -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-users"></i> Servidores com Mais Solicitações</div>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Servidor</th>
+          <th style="text-align:center;">Solicitações</th>
+          <th style="text-align:right;">Total de Diárias</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in top_serv %}
+        <tr style="cursor:default;">
+          <td style="font-size:13px;font-weight:700;color:var(--text-muted);">{{ loop.index }}</td>
+          <td style="font-size:14px;font-weight:500;">{{ row.servidor_responsavel }}</td>
+          <td style="text-align:center;"><span class="chip">{{ row.total }}</span></td>
+          <td style="text-align:right;font-size:13px;font-weight:700;color:var(--accent);">{{ row.diarias or 0 }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4"><div class="empty-state"><i class="fas fa-users"></i> Sem dados.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Saldo atual -->
+{% if saldo %}
+<div class="card-panel">
+  <div class="card-panel-header"><div class="panel-title"><i class="fas fa-wallet"></i> Situação Atual do Saldo</div></div>
+  <div class="card-panel-body">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-3 text-center">
+        <canvas id="saldoGauge" style="max-width:160px;max-height:160px;"></canvas>
+      </div>
+      <div class="col-md-9">
+        <div class="row g-2">
+          <div class="col-6 col-md-3" style="text-align:center;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:var(--accent);">{{ saldo.saldo_total }}</div>
+            <div style="font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Total</div>
+          </div>
+          <div class="col-6 col-md-3" style="text-align:center;padding:14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+            <div style="font-size:22px;font-weight:800;color:var(--success);">{{ saldo.saldo_livre }}</div>
+            <div style="font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Disponível</div>
+          </div>
+          <div class="col-6 col-md-3" style="text-align:center;padding:14px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a;">
+            <div style="font-size:22px;font-weight:800;color:var(--warning);">{{ saldo.saldo_comprometido }}</div>
+            <div style="font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Comprometido</div>
+          </div>
+          <div class="col-6 col-md-3" style="text-align:center;padding:14px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca;">
+            <div style="font-size:22px;font-weight:800;color:var(--danger);">{{ saldo.saldo_usado }}</div>
+            <div style="font-size:10.5px;font-weight:600;color:var(--text-muted);text-transform:uppercase;">Utilizado</div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="progress-custom" style="height:14px;border-radius:8px;">
+            <div class="bar bar-danger"  style="width:{{ saldo.pct_usado }}%;"></div>
+            <div class="bar bar-warning" style="width:{{ saldo.pct_comprometido }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Inter', system-ui";
+
+const cores = {
+  Norte: '#0891b2', Nordeste: '#7c3aed',
+  'Centro-Oeste': '#059669', Sudeste: '#dc2626', Sul: '#d97706'
+};
+
+/* ── Mensal ─────────────────────────────────── */
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ monthly_labels | tojson }},
+    datasets: [
+      {
+        label: 'Solicitações',
+        data: {{ monthly_sols | tojson }},
+        backgroundColor: '#bfdbfe',
+        borderColor: '#2563eb',
+        borderWidth: 1.5,
+        borderRadius: 4,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Diárias Concluídas',
+        data: {{ monthly_diarias | tojson }},
+        type: 'line',
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,.08)',
+        tension: .4,
+        pointRadius: 4,
+        fill: true,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top', labels: { font: { size: 12 } } } },
+    scales: {
+      y:  { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f1f5f9' }, title: { display: true, text: 'Solicitações', font: { size: 11 } } },
+      y2: { beginAtZero: true, position: 'right', ticks: { stepSize: 1, font: { size: 11 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Diárias', font: { size: 11 } } },
+      x:  { ticks: { font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
+
+/* ── Status ─────────────────────────────────── */
+const statusLabels = {{ by_status | map(attribute='status') | list | tojson }};
+const statusData   = {{ by_status | map(attribute='total') | list | tojson }};
+const statusColors = ['#94a3b8','#0ea5e9','#2563eb','#f59e0b','#22c55e','#f97316','#1e293b','#fecaca'];
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: statusLabels,
+    datasets: [{ data: statusData, backgroundColor: statusColors, borderWidth: 0 }]
+  },
+  options: {
+    cutout: '68%',
+    plugins: { legend: { display: false } }
+  }
+});
+
+/* ── Região ─────────────────────────────────── */
+const regLabels = {{ by_regiao | map(attribute='regiao') | list | tojson }};
+const regData   = {{ by_regiao | map(attribute='total') | list | tojson }};
+const regColors = regLabels.map(r => cores[r] || '#64748b');
+new Chart(document.getElementById('regiaoChart'), {
+  type: 'bar',
+  data: {
+    labels: regLabels,
+    datasets: [{ label: 'Solicitações', data: regData, backgroundColor: regColors, borderRadius: 6 }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f1f5f9' } },
+      y: { ticks: { font: { size: 12, weight: '600' } }, grid: { display: false } }
+    }
+  }
+});
+
+/* ── Categoria ────────────────────────────── */
+const catLabels = {{ by_cat | map(attribute='categoria_veiculo') | list | tojson }};
+const catData   = {{ by_cat | map(attribute='total') | list | tojson }};
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: {
+    labels: catLabels,
+    datasets: [{ data: catData, backgroundColor: '#818cf8', borderRadius: 6 }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f1f5f9' } },
+      y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
+
+/* ── Saldo Donut ───────────────────────────── */
+{% if saldo %}
+new Chart(document.getElementById('saldoGauge'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Disponível','Comprometido','Utilizado'],
+    datasets: [{
+      data: [{{ saldo.saldo_livre }}, {{ saldo.saldo_comprometido }}, {{ saldo.saldo_usado }}],
+      backgroundColor: ['#22c55e','#f59e0b','#ef4444'],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    cutout: '70%',
+    plugins: { legend: { display: false } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

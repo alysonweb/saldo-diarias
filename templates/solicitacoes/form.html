@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if sol else 'Nova' }} Solicitação{% endblock %}
+{% block page_title %}{{ 'Editar' if sol else 'Nova' }} Solicitação{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">
+    <i class="fas fa-{{ 'edit' if sol else 'plus-circle' }} me-2 text-primary"></i>
+    {{ 'Editar ' + sol.numero if sol else 'Nova Solicitação' }}
+  </h5>
+  <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Voltar
+  </a>
+</div>
+
+<!-- Alerta de conflito -->
+{% if conflitos %}
+<div class="alert-banner alert-banner-warning mb-4">
+  <i class="fas fa-exclamation-triangle"></i>
+  <div>
+    <strong>Atenção: {{ conflitos|length }} serviço(s) ativo(s) para este servidor neste período.</strong>
+    <div class="mt-1" style="font-size:12.5px;">
+      {% for c in conflitos %}
+        <a href="{{ url_for('detalhe_solicitacao', id=c.id) }}" target="_blank"
+           style="color:inherit;font-weight:600;">{{ c.numero }}</a>
+        ({{ c.data_inicio.strftime('%d/%m') }}–{{ c.data_fim.strftime('%d/%m') }})
+        {% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<form method="post">
+  <div class="row g-4">
+
+    <!-- Período e Localidade -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-calendar-alt me-2 text-primary"></i> Período e Localidade
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Data Início <span class="text-danger">*</span></label>
+              <input type="date" name="data_inicio" class="form-control" required
+                     value="{{ sol.data_inicio.strftime('%Y-%m-%d') if sol and sol.data_inicio else (pre.data_inicio or '') }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data Fim <span class="text-danger">*</span></label>
+              <input type="date" name="data_fim" class="form-control" required
+                     value="{{ sol.data_fim.strftime('%Y-%m-%d') if sol and sol.data_fim else (pre.data_fim or '') }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Local de Início do Serviço</label>
+              <input type="text" name="local_inicio" class="form-control"
+                     placeholder="Ex: Aeroporto de Fortaleza – CE"
+                     value="{{ sol.local_inicio or '' if sol else (pre.local_inicio or '') }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Região <span class="text-danger">*</span></label>
+              <select name="regiao" id="regiao" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for r in regioes %}
+                <option value="{{ r }}" {{ 'selected' if (sol and sol.regiao == r) or (not sol and pre.regiao == r) }}>{{ r }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">UF <span class="text-danger">*</span></label>
+              <select name="estado" id="estado" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for uf in estados %}
+                <option value="{{ uf }}" {{ 'selected' if (sol and sol.estado == uf) or (not sol and pre.estado == uf) }}>{{ uf }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check">
+                <input type="checkbox" name="pernoite" id="pernoite" class="form-check-input"
+                       {{ 'checked' if (sol and sol.pernoite) or (not sol and pre.pernoite) }}>
+                <label for="pernoite" class="form-check-label">
+                  <i class="fas fa-moon text-info me-1"></i> Pernoite em outra cidade
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Servidores -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-users me-2 text-primary"></i> Servidores
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Órgão <span class="text-danger">*</span></label>
+              <select name="orgao" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for o in orgaos %}
+                <option value="{{ o }}" {{ 'selected' if (sol and sol.orgao == o) or (not sol and pre.orgao == o) }}>{{ o }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Unidade / Secretaria</label>
+              <input type="text" name="unidade_secretaria" class="form-control"
+                     value="{{ sol.unidade_secretaria or '' if sol else (pre.unidade_secretaria or '') }}"
+                     placeholder="Ex: SNAS – Secretaria Nacional de Assistência Social">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Servidor Responsável <span class="text-danger">*</span></label>
+              <input type="text" name="servidor_responsavel" class="form-control" required
+                     value="{{ sol.servidor_responsavel or '' if sol else (pre.servidor_responsavel or '') }}"
+                     placeholder="Nome completo">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Contato (celular)</label>
+              <input type="text" name="contato_responsavel" class="form-control"
+                     value="{{ sol.contato_responsavel or '' if sol else (pre.contato_responsavel or '') }}"
+                     placeholder="(00) 9 0000-0000">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Servidores Adicionais no Veículo</label>
+              <textarea name="servidores_adicionais" class="form-control" rows="2"
+                        placeholder="Um por linha ou separados por vírgula">{{ sol.servidores_adicionais or '' if sol else (pre.servidores_adicionais or '') }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veículo e Diárias -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-car me-2 text-primary"></i> Veículo e Diárias
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Categoria do Veículo <span class="text-danger">*</span></label>
+              <select name="categoria_veiculo" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for c in categorias %}
+                <option value="{{ c }}" {{ 'selected' if (sol and sol.categoria_veiculo == c) or (not sol and pre.categoria_veiculo == c) }}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Tipo de Diária <span class="text-danger">*</span></label>
+              <select name="tipo_diaria" class="form-select" required>
+                <option value="">Selecione...</option>
+                {% for t in tipos_diaria %}
+                <option value="{{ t }}" {{ 'selected' if (sol and sol.tipo_diaria == t) or (not sol and pre.tipo_diaria == t) }}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Quantidade de Diárias</label>
+              <input type="number" name="quantidade_diarias" class="form-control" min="0"
+                     value="{{ sol.quantidade_diarias or 0 if sol else (pre.quantidade_diarias or 0) }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Valor Unitário (R$)</label>
+              <input type="number" name="valor_diaria" class="form-control" min="0" step="0.01"
+                     value="{{ '%.2f'|format(sol.valor_diaria|float) if sol and sol.valor_diaria else (pre.valor_diaria or '0.00') }}">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Motorista -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-id-badge me-2 text-primary"></i> Motorista
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome do Motorista</label>
+              <input type="text" id="motoristaNome" name="motorista_nome"
+                     class="form-control" autocomplete="off"
+                     value="{{ sol.motorista_nome or '' if sol else (pre.motorista_nome or '') }}"
+                     placeholder="Digite para buscar...">
+              <div id="motoristaList" style="display:none;position:absolute;z-index:200;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);max-width:380px;max-height:200px;overflow-y:auto;width:100%;"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Telefone do Motorista</label>
+              <input type="text" id="motoristaTel" name="motorista_telefone"
+                     class="form-control"
+                     value="{{ sol.motorista_telefone or '' if sol else (pre.motorista_telefone or '') }}"
+                     placeholder="(00) 9 0000-0000">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Observações -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom fw-semibold">
+          <i class="fas fa-comment-alt me-2 text-primary"></i> Observações
+        </div>
+        <div class="card-body">
+          <textarea name="observacoes" class="form-control" rows="3"
+                    placeholder="Informações adicionais...">{{ sol.observacoes or '' if sol else (pre.observacoes or '') }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="col-12 d-flex gap-2 justify-content-end">
+      <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-outline-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="fas fa-save me-1"></i>
+        {{ 'Salvar Alterações' if sol else 'Criar Solicitação' }}
+      </button>
+    </div>
+
+  </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtra estados por região selecionada
+const estadosPorRegiao = {{ estados_por_regiao | tojson }};
+const regiaoSel  = document.getElementById('regiao');
+const estadoSel  = document.getElementById('estado');
+const estadoAtual = "{{ sol.estado if sol and sol.estado else (pre.estado if pre else '') }}";
+
+function atualizarEstados() {
+  const regiao = regiaoSel.value;
+  const lista = estadosPorRegiao[regiao] || {{ estados | tojson }};
+  estadoSel.innerHTML = '<option value="">Selecione...</option>';
+  lista.sort().forEach(uf => {
+    const opt = document.createElement('option');
+    opt.value = uf;
+    opt.textContent = uf;
+    if (uf === estadoAtual) opt.selected = true;
+    estadoSel.appendChild(opt);
+  });
+}
+
+regiaoSel.addEventListener('change', atualizarEstados);
+if (regiaoSel.value) atualizarEstados();
+
+// Autocomplete motoristas
+const nomeInput = document.getElementById('motoristaNome');
+const telInput  = document.getElementById('motoristaTel');
+const list      = document.getElementById('motoristaList');
+let timeoutId;
+
+nomeInput?.addEventListener('input', () => {
+  clearTimeout(timeoutId);
+  const val = nomeInput.value.trim();
+  if (val.length < 2) { list.style.display = 'none'; return; }
+
+  timeoutId = setTimeout(() => {
+    fetch('/api/motoristas?q=' + encodeURIComponent(val))
+      .then(r => r.json())
+      .then(data => {
+        if (!data.length) { list.style.display = 'none'; return; }
+        list.innerHTML = data.map(m => `
+          <div class="motorista-opt" data-nome="${m.nome}" data-tel="${m.telefone}"
+               style="padding:10px 14px;cursor:pointer;font-size:13.5px;border-bottom:1px solid #f1f5f9;">
+            <div class="fw-semibold">${m.nome}</div>
+            <div style="font-size:11.5px;color:#64748b;">${m.empresa || ''} ${m.telefone ? '· ' + m.telefone : ''}</div>
+          </div>
+        `).join('');
+        list.style.display = 'block';
+
+        list.querySelectorAll('.motorista-opt').forEach(el => {
+          el.addEventListener('mouseenter', () => el.style.background = '#f8fafc');
+          el.addEventListener('mouseleave', () => el.style.background = '');
+          el.addEventListener('click', () => {
+            nomeInput.value = el.dataset.nome;
+            telInput.value  = el.dataset.tel;
+            list.style.display = 'none';
+          });
+        });
+      });
+  }, 250);
+});
+
+document.addEventListener('click', e => {
+  if (!nomeInput?.contains(e.target) && !list?.contains(e.target)) {
+    list.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

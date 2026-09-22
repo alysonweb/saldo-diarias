@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ m.nome }}{% endblock %}
+{% block page_title %}Motorista: {{ m.nome }}{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+  <div>
+    <h4 style="font-weight:800;margin-bottom:6px;">{{ m.nome }}</h4>
+    {% if m.ativo %}
+    <span class="status-badge" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;">
+      <i class="fas fa-circle fa-xs"></i> Ativo
+    </span>
+    {% else %}
+    <span class="status-badge status-Cancelada">Inativo</span>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('lista_motoristas') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Voltar
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Coluna de dados -->
+  <div class="col-lg-4">
+    <div class="card-panel mb-3">
+      <div class="card-panel-header"><div class="panel-title"><i class="fas fa-user"></i> Dados Cadastrais</div></div>
+      <div class="card-panel-body">
+        <form method="post">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Nome <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control form-control-sm" required value="{{ m.nome }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Telefone</label>
+              <input type="text" name="telefone" class="form-control form-control-sm" value="{{ m.telefone or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Empresa</label>
+              <input type="text" name="empresa" class="form-control form-control-sm" value="{{ m.empresa or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Observações</label>
+              <textarea name="observacoes" class="form-control form-control-sm" rows="3">{{ m.observacoes or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input type="checkbox" name="ativo" id="ativo" class="form-check-input" {{ 'checked' if m.ativo }}>
+                <label for="ativo" class="form-check-label" style="font-size:13px;">Motorista ativo</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="fas fa-save me-1"></i> Salvar
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card-panel">
+      <div class="card-panel-body">
+        <div class="row g-2 text-center">
+          <div class="col-6" style="padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+            <div style="font-size:24px;font-weight:800;color:var(--accent);">{{ viagens|length }}</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Viagens</div>
+          </div>
+          <div class="col-6" style="padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+            <div style="font-size:24px;font-weight:800;color:var(--success);">
+              {{ viagens | selectattr('status', 'equalto', 'Concluída') | list | length }}
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Concluídas</div>
+          </div>
+          <div class="col-12" style="padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+            <div style="font-size:22px;font-weight:800;color:var(--warning);">
+              {% set total_dias = viagens | sum(attribute='duracao_dias') %}{{ total_dias }}
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Total de Dias em Campo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Histórico de viagens -->
+  <div class="col-lg-8">
+    <div class="card-panel">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-road"></i> Histórico de Viagens</div>
+        <span style="font-size:12px;color:var(--text-muted);">{{ viagens|length }} viagem(ns)</span>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Solicitação</th>
+              <th>Período</th>
+              <th>Região / UF</th>
+              <th>Servidor</th>
+              <th style="text-align:center;">Diárias</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in viagens %}
+            <tr onclick="window.location='{{ url_for('detalhe_solicitacao', id=s.id) }}'">
+              <td>
+                <span style="font-weight:700;color:var(--accent);">{{ s.numero }}</span>
+              </td>
+              <td style="font-size:12.5px;white-space:nowrap;">
+                {{ s.data_inicio.strftime('%d/%m/%Y') }}<br>
+                <span style="color:var(--text-muted);">{{ s.data_fim.strftime('%d/%m/%Y') }}</span>
+              </td>
+              <td style="font-size:12.5px;">
+                <span style="color:var(--text-muted);">{{ s.regiao }}</span><br>
+                <strong>{{ s.estado }}</strong>
+              </td>
+              <td style="font-size:13px;">{{ s.servidor_responsavel or '—' }}</td>
+              <td style="text-align:center;"><span class="chip">{{ s.quantidade_diarias }}</span></td>
+              <td>
+                <span class="status-badge status-{{ s.status.replace(' ','-') }}">{{ s.status }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <i class="fas fa-road"></i>
+                  Nenhuma viagem encontrada para este motorista.
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

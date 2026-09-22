@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<div class="dash-hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-md-7">
+      <div class="hero-greeting">
+        <i class="fas fa-sun me-1"></i>
+        Ministério do Desenvolvimento Social, Família e Combate à Fome
+      </div>
+      <div class="hero-title">Controle de Diárias de Veículos</div>
+      <div class="hero-sub">DITRAN · {{ hoje_str }}</div>
+
+      <div class="hero-badges mt-3">
+        <div class="hero-badge">
+          <i class="fas fa-car-side"></i> {{ ativos|length }} serviços ativos
+        </div>
+        <div class="hero-badge">
+          <i class="fas fa-check-double"></i> {{ total_concluidas }} concluídos
+        </div>
+        <div class="hero-badge">
+          <i class="fas fa-layer-group"></i> {{ total }} total
+        </div>
+        {% if saldo %}
+        <div class="hero-badge">
+          <i class="fas fa-wallet"></i> {{ saldo.saldo_livre }} diárias disponíveis
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-5 mt-3 mt-md-0 d-none d-md-flex align-items-center justify-content-end">
+      {% if saldo %}
+      <div style="width:160px;height:160px;flex-shrink:0;">
+        <canvas id="heroChart"></canvas>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Alertas ─────────────────────────────────────────────── -->
+{% if vencidos %}
+<div class="alert-banner alert-banner-danger mb-3">
+  <i class="fas fa-exclamation-circle"></i>
+  <div>
+    <strong>{{ vencidos|length }} serviço(s) com prazo vencido</strong> — data de fim ultrapassada sem encerramento.
+    {% for s in vencidos[:3] %}
+    <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="ms-2 fw-semibold text-danger">{{ s.numero }}</a>
+    {% endfor %}
+    {% if vencidos|length > 3 %}<span class="ms-1 text-muted">+ {{ vencidos|length - 3 }} outros</span>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if saldo and saldo.saldo_livre < (saldo.saldo_total * 0.15)|int %}
+<div class="alert-banner alert-banner-danger mb-3">
+  <i class="fas fa-battery-quarter"></i>
+  <div>
+    <strong>Saldo crítico!</strong> Apenas <strong>{{ saldo.saldo_livre }}</strong> diárias disponíveis
+    ({{ 100 - saldo.pct_usado - saldo.pct_comprometido }}% do total).
+    <a href="{{ url_for('saldo') }}" class="ms-2 fw-semibold">Gerenciar saldo →</a>
+  </div>
+</div>
+{% elif saldo and saldo.saldo_livre < (saldo.saldo_total * 0.30)|int %}
+<div class="alert-banner alert-banner-warning mb-3">
+  <i class="fas fa-triangle-exclamation"></i>
+  <div>
+    <strong>Atenção:</strong> saldo disponível abaixo de 30% —
+    <strong>{{ saldo.saldo_livre }}</strong> diárias restantes.
+    <a href="{{ url_for('saldo') }}" class="ms-2 fw-semibold">Ver saldo →</a>
+  </div>
+</div>
+{% endif %}
+
+{% if iniciando_hoje %}
+<div class="alert-banner alert-banner-info mb-3">
+  <i class="fas fa-calendar-check"></i>
+  <div>
+    <strong>{{ iniciando_hoje|length }} serviço(s) iniciam hoje:</strong>
+    {% for s in iniciando_hoje %}
+    <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="ms-2 fw-semibold text-primary">{{ s.numero }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if encerrando_hoje %}
+<div class="alert-banner alert-banner-warning mb-3">
+  <i class="fas fa-hourglass-end"></i>
+  <div>
+    <strong>{{ encerrando_hoje|length }} serviço(s) encerram hoje:</strong>
+    {% for s in encerrando_hoje %}
+    <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="ms-2 fw-semibold">{{ s.numero }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── KPIs ────────────────────────────────────────────────── -->
+{% if saldo %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-primary">
+      <div class="kpi-icon blue"><i class="fas fa-wallet"></i></div>
+      <div class="kpi-value">{{ saldo.saldo_total }}</div>
+      <div class="kpi-label">Total Contratado</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-success">
+      <div class="kpi-icon green"><i class="fas fa-circle-check"></i></div>
+      <div class="kpi-value" style="color:var(--success);">{{ saldo.saldo_livre }}</div>
+      <div class="kpi-label">Disponível</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-warning">
+      <div class="kpi-icon yellow"><i class="fas fa-clock"></i></div>
+      <div class="kpi-value" style="color:var(--warning);">{{ saldo.saldo_comprometido }}</div>
+      <div class="kpi-label">Comprometido</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-danger">
+      <div class="kpi-icon red"><i class="fas fa-check-double"></i></div>
+      <div class="kpi-value" style="color:var(--danger);">{{ saldo.saldo_usado }}</div>
+      <div class="kpi-label">Utilizado</div>
+    </div>
+  </div>
+</div>
+
+<!-- Barra de utilização -->
+<div class="card-panel mb-4">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-chart-bar"></i> Utilização do Saldo</div>
+    <span style="font-size:12px;color:var(--text-muted);">
+      {{ saldo.pct_usado + saldo.pct_comprometido }}% utilizado/comprometido
+    </span>
+  </div>
+  <div class="card-panel-body">
+    <div class="progress-custom" style="height:14px;border-radius:8px;">
+      <div class="bar bar-danger" style="width:{{ saldo.pct_usado }}%;"
+           title="Utilizado: {{ saldo.saldo_usado }}"></div>
+      <div class="bar bar-warning" style="width:{{ saldo.pct_comprometido }}%;"
+           title="Comprometido: {{ saldo.saldo_comprometido }}"></div>
+    </div>
+    <div class="d-flex gap-4 mt-3 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:10px;height:10px;background:var(--danger);border-radius:3px;"></div>
+        <span style="font-size:12px;color:var(--text-muted);">Utilizado <strong>{{ saldo.saldo_usado }}</strong> ({{ saldo.pct_usado }}%)</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:10px;height:10px;background:var(--warning);border-radius:3px;"></div>
+        <span style="font-size:12px;color:var(--text-muted);">Comprometido <strong>{{ saldo.saldo_comprometido }}</strong> ({{ saldo.pct_comprometido }}%)</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div style="width:10px;height:10px;background:#e2e8f0;border-radius:3px;"></div>
+        <span style="font-size:12px;color:var(--text-muted);">Disponível <strong>{{ saldo.saldo_livre }}</strong> ({{ 100 - saldo.pct_usado - saldo.pct_comprometido }}%)</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert-banner alert-banner-info mb-4">
+  <i class="fas fa-info-circle"></i>
+  <div>
+    Nenhum saldo cadastrado.
+    <a href="{{ url_for('saldo') }}" class="ms-2 fw-semibold">Cadastrar saldo →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Gráfico + Regiões ────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+  <!-- Gráfico por região -->
+  <div class="col-12 col-md-4">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-chart-bar"></i> Serviços por Região</div>
+      </div>
+      <div class="card-panel-body d-flex align-items-center justify-content-center" style="min-height:220px;">
+        <canvas id="regionChart" style="max-height:200px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista por região -->
+  <div class="col-12 col-md-8">
+    <div class="row g-3">
+      {% for regiao in regioes %}
+      {% set servicos = por_regiao[regiao] %}
+      {% set cores = {'Norte':'#0891b2','Nordeste':'#7c3aed','Centro-Oeste':'#059669','Sudeste':'#dc2626','Sul':'#d97706'} %}
+      <div class="col-12 col-sm-6">
+        <div class="region-card">
+          <div class="region-header">
+            <div class="region-name">
+              <div class="region-dot" style="background:{{ cores[regiao] }};"></div>
+              {{ regiao }}
+            </div>
+            <span class="region-count {{ 'empty' if not servicos }}">{{ servicos|length }}</span>
+          </div>
+          {% if servicos %}
+          {% for s in servicos[:3] %}
+          <a href="{{ url_for('detalhe_solicitacao', id=s.id) }}" class="service-item">
+            <div style="min-width:0;">
+              <div class="service-num">{{ s.numero }}</div>
+              <div class="service-info">
+                <strong>{{ s.estado }}</strong> ·
+                {{ s.data_inicio.strftime('%d/%m') }}–{{ s.data_fim.strftime('%d/%m') }}
+                {% if s.servidor_responsavel %}
+                · {{ s.servidor_responsavel.split()[0] }}
+                {% endif %}
+              </div>
+            </div>
+            <div style="flex-shrink:0;">
+              <span class="status-badge status-{{ s.status.replace(' ','-') }}">{{ s.status }}</span>
+            </div>
+          </a>
+          {% endfor %}
+          {% if servicos|length > 3 %}
+          <a href="{{ url_for('lista_solicitacoes', regiao=regiao) }}"
+             style="display:block;padding:8px 16px;font-size:12px;color:var(--accent);text-decoration:none;border-top:1px solid #f1f5f9;">
+            + {{ servicos|length - 3 }} mais &rarr;
+          </a>
+          {% endif %}
+          {% else %}
+          <div class="region-empty">
+            <i class="fas fa-check-circle text-success mb-1" style="font-size:18px;display:block;"></i>
+            Sem serviços ativos
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Últimas solicitações ─────────────────────────────────── -->
+<div class="card-panel">
+  <div class="card-panel-header">
+    <div class="panel-title"><i class="fas fa-clock-rotate-left"></i> Últimas Solicitações</div>
+    <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-sm btn-outline-primary">
+      Ver todas <i class="fas fa-arrow-right ms-1"></i>
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Período</th>
+          <th>Região / UF</th>
+          <th>Servidor Responsável</th>
+          <th>Veículo</th>
+          <th style="text-align:center;">Diárias</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in recentes %}
+        <tr onclick="window.location='{{ url_for('detalhe_solicitacao', id=s.id) }}'">
+          <td>
+            <span style="font-weight:700;color:var(--accent);">{{ s.numero }}</span>
+            {% if s.pernoite %}
+            <span class="chip ms-1" style="font-size:10px;padding:1px 6px;"><i class="fas fa-moon fa-xs"></i></span>
+            {% endif %}
+          </td>
+          <td style="font-size:12.5px;">
+            {{ s.data_inicio.strftime('%d/%m/%Y') }}<br>
+            <span style="color:var(--text-muted);">{{ s.data_fim.strftime('%d/%m/%Y') }}</span>
+          </td>
+          <td style="font-size:12.5px;">
+            <span style="color:var(--text-muted);">{{ s.regiao }}</span><br>
+            <strong>{{ s.estado }}</strong>
+          </td>
+          <td style="font-size:13px;">{{ s.servidor_responsavel or '—' }}</td>
+          <td style="font-size:12.5px;">
+            {{ s.categoria_veiculo or '—' }}<br>
+            <span style="color:var(--text-muted);">{{ s.tipo_diaria }}</span>
+          </td>
+          <td style="text-align:center;">
+            <span class="chip">{{ s.quantidade_diarias }}</span>
+          </td>
+          <td>
+            <span class="status-badge status-{{ s.status.replace(' ','-') }}">{{ s.status }}</span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <i class="fas fa-clipboard-list"></i>
+              Nenhuma solicitação cadastrada ainda.
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Inter', 'Segoe UI', system-ui";
+
+/* ── Donut: Saldo ────────────────────────────── */
+{% if saldo %}
+new Chart(document.getElementById('heroChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Disponível', 'Comprometido', 'Utilizado'],
+    datasets: [{
+      data: [{{ saldo.saldo_livre }}, {{ saldo.saldo_comprometido }}, {{ saldo.saldo_usado }}],
+      backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  },
+  options: {
+    cutout: '72%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed}`
+        }
+      }
+    }
+  }
+});
+{% endif %}
+
+/* ── Bar: Por Região ─────────────────────────── */
+new Chart(document.getElementById('regionChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ regioes_labels | tojson }},
+    datasets: [{
+      label: 'Serviços ativos',
+      data: {{ regioes_data | tojson }},
+      backgroundColor: ['#0891b2','#7c3aed','#059669','#dc2626','#d97706'],
+      borderRadius: 6,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, font: { size: 11 } },
+        grid: { color: '#f1f5f9' }
+      },
+      y: {
+        ticks: { font: { size: 12, weight: '600' } },
+        grid: { display: false }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

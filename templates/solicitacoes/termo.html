@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Termo de Notificação – {{ sol.numero }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 12pt;
+      line-height: 1.7;
+      color: #000;
+      background: #fff;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 25mm 20mm 20mm 25mm;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 24pt;
+      padding-bottom: 12pt;
+      border-bottom: 2px solid #000;
+    }
+
+    .brasao {
+      font-size: 40pt;
+      margin-bottom: 6pt;
+    }
+
+    .header h1 {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2pt;
+    }
+
+    .header h2 {
+      font-size: 11pt;
+      font-weight: normal;
+    }
+
+    /* Title block */
+    .doc-title {
+      text-align: center;
+      margin: 20pt 0 16pt;
+    }
+
+    .doc-title h3 {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      text-decoration: underline;
+      letter-spacing: 1px;
+    }
+
+    .doc-subtitle {
+      font-size: 10.5pt;
+      color: #333;
+      margin-top: 4pt;
+    }
+
+    /* Info table */
+    .info-grid {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14pt 0;
+      font-size: 11pt;
+    }
+
+    .info-grid td {
+      padding: 5pt 8pt;
+      border: 1px solid #ccc;
+    }
+
+    .info-grid .lbl {
+      font-weight: bold;
+      background: #f5f5f5;
+      width: 38%;
+      white-space: nowrap;
+    }
+
+    /* Content */
+    .content { margin: 14pt 0; font-size: 11.5pt; }
+
+    .content p {
+      margin-bottom: 10pt;
+      text-align: justify;
+    }
+
+    .clause {
+      margin-bottom: 10pt;
+    }
+
+    .clause-title {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    /* Signature block */
+    .signatures {
+      margin-top: 40pt;
+      display: flex;
+      justify-content: space-between;
+      gap: 30pt;
+    }
+
+    .sig-block {
+      flex: 1;
+      text-align: center;
+    }
+
+    .sig-line {
+      border-top: 1px solid #000;
+      margin-bottom: 6pt;
+      padding-top: 4pt;
+    }
+
+    .sig-label { font-size: 10pt; }
+
+    /* Footer */
+    .footer {
+      margin-top: 20pt;
+      padding-top: 10pt;
+      border-top: 1px solid #999;
+      font-size: 9pt;
+      color: #555;
+      text-align: center;
+    }
+
+    /* Print controls (hidden on print) */
+    .print-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #1e3a5f;
+      color: #fff;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+    }
+
+    .print-bar button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 18px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .print-bar a {
+      color: rgba(255,255,255,.7);
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    @media print {
+      .print-bar { display: none !important; }
+      .page { margin: 0; padding: 20mm 15mm 15mm 20mm; }
+      body { font-size: 11pt; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Barra de impressão -->
+<div class="print-bar">
+  <span>Termo de Notificação — {{ sol.numero }}</span>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <a href="{{ url_for('detalhe_solicitacao', id=sol.id) }}">← Voltar</a>
+    <button onclick="window.print()"><i>⎙</i> Imprimir / Salvar PDF</button>
+  </div>
+</div>
+
+<div style="height:44px;"></div><!-- Espaço da barra -->
+
+<div class="page">
+
+  <!-- Cabeçalho -->
+  <div class="header">
+    <div class="brasao">🏛️</div>
+    <h1>Ministério do Desenvolvimento Social, Família e Combate à Fome</h1>
+    <h2>Diretoria de Transportes e Logística — DITRAN</h2>
+  </div>
+
+  <!-- Título -->
+  <div class="doc-title">
+    <h3>Termo de Notificação de Uso de Veículo Oficial</h3>
+    <div class="doc-subtitle">Solicitação {{ sol.numero }} — Emitido em {{ hoje.strftime('%d de %B de %Y') }}</div>
+  </div>
+
+  <!-- Dados -->
+  <table class="info-grid">
+    <tr>
+      <td class="lbl">Servidor Responsável</td>
+      <td>{{ sol.servidor_responsavel or '___________________________' }}</td>
+      <td class="lbl">Contato</td>
+      <td>{{ sol.contato_responsavel or '___________________' }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Órgão / Secretaria</td>
+      <td>{{ sol.orgao }}{% if sol.unidade_secretaria %} – {{ sol.unidade_secretaria }}{% endif %}</td>
+      <td class="lbl">N.º Solicitação</td>
+      <td><strong>{{ sol.numero }}</strong></td>
+    </tr>
+    <tr>
+      <td class="lbl">Período de Utilização</td>
+      <td>{{ sol.data_inicio.strftime('%d/%m/%Y') }} a {{ sol.data_fim.strftime('%d/%m/%Y') }} ({{ sol.duracao_dias }} dia(s))</td>
+      <td class="lbl">Destino (UF)</td>
+      <td>{{ sol.regiao }} — {{ sol.estado }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Categoria do Veículo</td>
+      <td>{{ sol.categoria_veiculo or '—' }}</td>
+      <td class="lbl">Tipo de Diária</td>
+      <td>{{ sol.tipo_diaria or '—' }}</td>
+    </tr>
+    {% if sol.motorista_nome %}
+    <tr>
+      <td class="lbl">Motorista Designado</td>
+      <td>{{ sol.motorista_nome }}</td>
+      <td class="lbl">Tel. Motorista</td>
+      <td>{{ sol.motorista_telefone or '—' }}</td>
+    </tr>
+    {% endif %}
+    {% if sol.servidores_adicionais %}
+    <tr>
+      <td class="lbl">Outros Servidores</td>
+      <td colspan="3">{{ sol.servidores_adicionais }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <!-- Conteúdo normativo -->
+  <div class="content">
+    <p>Em cumprimento às normas vigentes, notificamos que a utilização de veículo oficial por servidores em deslocamento para os estados deve observar rigorosamente o disposto no <strong>Decreto nº 9.287, de 15 de fevereiro de 2018</strong>, e demais regulamentações correlatas, conforme cláusulas abaixo:</p>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula I – Período de Utilização:</span>
+      o serviço baseia-se em diária de {{ sol.tipo_diaria or '10h' }}, devendo ser respeitados os horários de início e término previstos. O uso de veículo oficial fora desse limite é vedado sem autorização expressa e prévia da DITRAN.
+    </div>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula II – Vedação ao Auxílio-Deslocamento:</span>
+      é expressamente vedado o uso de veículo oficial para o transporte individual de servidor desde a residência até o local de trabalho e vice-versa, bem como para os locais de embarque/desembarque quando houver o pagamento de ajuda de custo de Embarque e Desembarque (Decreto nº 5.992/2006). O descumprimento sujeita o servidor à responsabilização administrativa.
+    </div>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula III – Assinatura da Requisição:</span>
+      ao término do serviço, o servidor responsável deverá assinar a requisição de transporte, atestando a correta execução do serviço contratado.
+    </div>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula IV – Cancelamento:</span>
+      qualquer cancelamento ou alteração de horário deve ser comunicado à DITRAN com antecedência mínima de <strong>3 (três) horas</strong> do início previsto do serviço, sob pena de responsabilização pelos custos gerados.
+    </div>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula V – Compartilhamento:</span>
+      quando os horários forem compatíveis, os servidores deverão compartilhar o mesmo veículo oficial, em observância aos princípios da economicidade e eficiência administrativa.
+    </div>
+
+    <div class="clause">
+      <span class="clause-title">Cláusula VI – Uso Urbano no Destino:</span>
+      é vedada a utilização de veículo oficial para transporte urbano no destino da viagem quando esse deslocamento já estiver contemplado nas diárias recebidas pelo servidor. Tal prática caracteriza duplicidade de custeio e pode ensejar responsabilização administrativa. Esclarecimentos sobre custos em SCDP devem ser obtidos junto à Coordenação-Geral de Gestão de Pessoas.
+    </div>
+
+    <p>O servidor declara ter lido, compreendido e aceito os termos acima, comprometendo-se ao seu fiel cumprimento.</p>
+  </div>
+
+  <!-- Assinaturas -->
+  <div class="signatures">
+    <div class="sig-block">
+      <div style="height:50pt;"></div>
+      <div class="sig-line"></div>
+      <div class="sig-label">
+        {{ sol.servidor_responsavel or 'Servidor Responsável' }}<br>
+        {{ sol.orgao }}{% if sol.unidade_secretaria %} – {{ sol.unidade_secretaria }}{% endif %}
+      </div>
+    </div>
+    <div class="sig-block">
+      <div style="height:50pt;"></div>
+      <div class="sig-line"></div>
+      <div class="sig-label">
+        Responsável pela DITRAN<br>
+        Ministério do Desenvolvimento Social
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div class="footer">
+    Documento gerado pelo Sistema de Controle de Diárias – DITRAN/MDS &nbsp;·&nbsp;
+    {{ hoje.strftime('%d/%m/%Y') }} &nbsp;·&nbsp; {{ sol.numero }}
+  </div>
+
+</div>
+</body>
+</html>

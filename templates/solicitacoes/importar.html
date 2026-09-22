@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Importar Solicitações{% endblock %}
+{% block page_title %}Importar Solicitações{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h5 class="fw-semibold mb-0">
+    <i class="fas fa-file-import me-2 text-primary"></i> Importar Solicitações
+  </h5>
+  <a href="{{ url_for('lista_solicitacoes') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Voltar
+  </a>
+</div>
+
+<!-- Steps -->
+<div class="d-flex gap-0 mb-5 align-items-center" style="max-width:600px;">
+  {% set steps = [('1', 'Template', 'upload' if step == 'upload' else ''), ('2', 'Upload', 'upload' if step == 'upload' else ('preview' if step == 'preview' else '')), ('3', 'Confirmar', 'preview' if step == 'preview' else '')] %}
+  {% for num, label, _ in [('1', 'Template', ''), ('2', 'Upload & Preview', ''), ('3', 'Confirmar', '')] %}
+  {% set is_active = (num == '1' and step == 'upload') or (num == '2' and step == 'upload') or (num == '3' and step == 'preview') %}
+  <div class="d-flex align-items-center" style="flex:1;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+                  background:{{ 'var(--accent)' if is_active else '#e2e8f0' }};
+                  color:{{ '#fff' if is_active else 'var(--text-muted)' }};">
+        {{ num }}
+      </div>
+      <span style="font-size:11px;font-weight:{{ '700' if is_active else '500' }};color:{{ 'var(--text)' if is_active else 'var(--text-muted)' }};white-space:nowrap;">
+        {{ label }}
+      </span>
+    </div>
+    {% if not loop.last %}
+    <div style="flex:1;height:2px;background:var(--border);margin:0 8px 20px;"></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if step == 'upload' %}
+
+<!-- Step 1: Template -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-file-excel"></i> Modelo da Planilha</div>
+      </div>
+      <div class="card-panel-body">
+        <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:16px;">
+          Baixe o modelo Excel com as colunas corretas e preencha com os dados das solicitações.
+        </p>
+        <div class="mb-3" style="font-size:13px;">
+          <strong>Colunas esperadas:</strong>
+          <div class="mt-2 d-flex flex-wrap gap-1">
+            {% for col in ['data_inicio', 'data_fim', 'regiao', 'estado', 'local_inicio', 'pernoite', 'orgao', 'unidade_secretaria', 'servidor_responsavel', 'contato_responsavel', 'servidores_adicionais', 'tipo_diaria', 'categoria_veiculo', 'quantidade_diarias', 'valor_diaria', 'motorista_nome', 'motorista_telefone', 'observacoes'] %}
+            <span class="chip" style="font-size:11px;">{{ col }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <form method="post" action="{{ url_for('importar_solicitacoes') }}">
+          <input type="hidden" name="action" value="template">
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="fas fa-download me-1"></i> Baixar Modelo Excel
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Upload -->
+  <div class="col-md-6">
+    <div class="card-panel h-100">
+      <div class="card-panel-header">
+        <div class="panel-title"><i class="fas fa-cloud-upload-alt"></i> Enviar Planilha</div>
+      </div>
+      <div class="card-panel-body">
+        <p style="font-size:13.5px;color:var(--text-muted);margin-bottom:16px;">
+          Após preencher o modelo, envie o arquivo para visualizar e confirmar os dados.
+        </p>
+        <form method="post" action="{{ url_for('importar_solicitacoes') }}" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="preview">
+          <div class="mb-3">
+            <label for="importArq" style="display:block;border:2px dashed var(--border);border-radius:var(--r-sm);padding:24px;text-align:center;cursor:pointer;">
+              <i class="fas fa-file-spreadsheet" style="font-size:28px;color:var(--text-muted);display:block;margin-bottom:8px;"></i>
+              <span style="font-size:13.5px;color:var(--text-muted);">
+                <strong style="color:var(--accent);">Clique para selecionar</strong> ou arraste aqui
+              </span>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">.xlsx ou .xls</div>
+              <input type="file" id="importArq" name="arquivo" accept=".xlsx,.xls" style="display:none;" required>
+            </label>
+            <div id="importFileName" style="font-size:13px;color:var(--accent);margin-top:6px;"></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="fas fa-eye me-1"></i> Visualizar Dados
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% elif step == 'preview' %}
+
+<!-- Step 3: Preview e Confirmação -->
+<div class="card-panel">
+  <div class="card-panel-header">
+    <div class="panel-title">
+      <i class="fas fa-table"></i>
+      Preview — {{ preview|length }} linha(s) encontrada(s)
+    </div>
+    {% set erros = preview | selectattr('_erro') | list | length %}
+    {% if erros %}
+    <span class="badge" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:11px;">
+      {{ erros }} com erro
+    </span>
+    {% endif %}
+  </div>
+
+  <form method="post" action="{{ url_for('importar_solicitacoes') }}">
+    <input type="hidden" name="action" value="confirmar">
+    <div class="table-responsive">
+      <table class="data-table" style="font-size:12.5px;">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll"></th>
+            <th>#</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Servidor</th>
+            <th>Órgão</th>
+            <th>Destino</th>
+            <th>Motorista</th>
+            <th>Qtd</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in preview %}
+          <tr style="cursor:default;{{ 'background:#fef2f2;' if item._erro else '' }}">
+            <td>
+              <input type="checkbox" name="selecionar" value="{{ item._linha }}"
+                     {{ 'checked' if not item._erro else 'disabled' }}>
+            </td>
+            <td>{{ item._linha }}</td>
+            <td>{{ item.get('data_inicio', '') }}</td>
+            <td>{{ item.get('data_fim', '') }}</td>
+            <td>{{ item.get('servidor_responsavel', '') }}</td>
+            <td>{{ item.get('orgao', '') }}</td>
+            <td>{{ item.get('estado', '') }}</td>
+            <td>{{ item.get('motorista_nome', '') }}</td>
+            <td>{{ item.get('quantidade_diarias', '') }}</td>
+            <td>
+              {% if item._erro %}
+              <span style="color:var(--danger);font-size:11.5px;font-weight:600;">
+                <i class="fas fa-times-circle me-1"></i>{{ item._erro }}
+              </span>
+              {% else %}
+              <span style="color:var(--success);font-size:11.5px;font-weight:600;">
+                <i class="fas fa-check-circle me-1"></i> OK
+              </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex gap-2 justify-content-between align-items-center p-3 border-top">
+      <a href="{{ url_for('importar_solicitacoes') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Voltar
+      </a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-check me-1"></i> Confirmar Importação
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('importArq')?.addEventListener('change', function() {
+  if (this.files.length) {
+    document.getElementById('importFileName').textContent = this.files[0].name;
+  }
+});
+
+document.getElementById('selectAll')?.addEventListener('change', function() {
+  document.querySelectorAll('input[name="selecionar"]:not(:disabled)').forEach(cb => {
+    cb.checked = this.checked;
+  });
+});
+</script>
+{% endblock %}

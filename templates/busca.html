@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Busca{% endblock %}
+{% block page_title %}Busca Global{% endblock %}
+
+{% block content %}
+
+<!-- Campo de busca principal -->
+<div class="card-panel mb-4" style="max-width:600px;">
+  <div class="card-panel-body">
+    <form action="{{ url_for('buscar') }}" method="get">
+      <div class="input-group">
+        <span class="input-group-text" style="background:#fff;border-right:none;border-color:#e2e8f0;">
+          <i class="fas fa-search" style="color:#94a3b8;"></i>
+        </span>
+        <input type="text" name="q" class="form-control form-control-lg"
+               style="border-left:none;border-color:#e2e8f0;font-size:15px;"
+               placeholder="Buscar número, servidor, UF, motorista..."
+               value="{{ q }}" autofocus>
+        <button type="submit" class="btn btn-primary px-4">Buscar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if q %}
+
+<!-- Resultados: Solicitações -->
+<div class="section-title mb-3">
+  <i class="fas fa-clipboard-list"></i>
+  Solicitações
+  <span style="font-size:12px;color:var(--text-muted);font-weight:400;">({{ sols|length }} resultado(s))</span>
+</div>
+
+{% if sols %}
+<div class="card-panel mb-4">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Período</th>
+          <th>Região / UF</th>
+          <th>Servidor</th>
+          <th>Motorista</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sols %}
+        <tr onclick="window.location='{{ url_for('detalhe_solicitacao', id=s.id) }}'">
+          <td><span style="font-weight:700;color:var(--accent);">{{ s.numero }}</span></td>
+          <td style="font-size:12.5px;white-space:nowrap;">
+            {{ s.data_inicio.strftime('%d/%m/%Y') }}<br>
+            <span style="color:var(--text-muted);">{{ s.data_fim.strftime('%d/%m/%Y') }}</span>
+          </td>
+          <td style="font-size:12.5px;">
+            <span style="color:var(--text-muted);">{{ s.regiao }}</span><br><strong>{{ s.estado }}</strong>
+          </td>
+          <td style="font-size:13px;">{{ s.servidor_responsavel or '—' }}</td>
+          <td style="font-size:13px;">{{ s.motorista_nome or '—' }}</td>
+          <td><span class="status-badge status-{{ s.status.replace(' ','-') }}">{{ s.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert-banner alert-banner-info mb-4">
+  <i class="fas fa-info-circle"></i>
+  Nenhuma solicitação encontrada para "<strong>{{ q }}</strong>".
+</div>
+{% endif %}
+
+<!-- Resultados: Motoristas -->
+<div class="section-title mb-3">
+  <i class="fas fa-id-badge"></i>
+  Motoristas
+  <span style="font-size:12px;color:var(--text-muted);font-weight:400;">({{ mots|length }} resultado(s))</span>
+</div>
+
+{% if mots %}
+<div class="card-panel mb-4">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>Empresa</th>
+          <th style="text-align:center;">Viagens</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in mots %}
+        <tr onclick="window.location='{{ url_for('detalhe_motorista', id=m.id) }}'">
+          <td style="font-weight:600;">{{ m.nome }}</td>
+          <td style="font-size:13px;">{{ m.telefone or '—' }}</td>
+          <td style="font-size:13px;">{{ m.empresa or '—' }}</td>
+          <td style="text-align:center;"><span class="chip">{{ m.total_viagens }}</span></td>
+          <td>
+            {% if m.ativo %}
+            <span class="status-badge" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;">Ativo</span>
+            {% else %}
+            <span class="status-badge status-Cancelada">Inativo</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert-banner alert-banner-info mb-4">
+  <i class="fas fa-info-circle"></i>
+  Nenhum motorista encontrado para "<strong>{{ q }}</strong>".
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="padding:60px 20px;">
+  <i class="fas fa-search" style="font-size:40px;"></i>
+  <div style="font-size:15px;font-weight:500;margin-top:8px;">Digite um termo para buscar</div>
+  <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+    Número de solicitação, servidor, UF, motorista, órgão...
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

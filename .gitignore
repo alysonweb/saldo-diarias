@@ -1,0 +1,36 @@
+# Ambiente virtual Python
+venv/
+env/
+.env
+
+# Banco de dados
+*.db
+*.sqlite
+*.sqlite3
+
+# Configurações locais do editor/ferramentas
+.vscode/
+.claude/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Uploads e arquivos temporários
+uploads/
+*.tmp
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Binários
+*.exe
